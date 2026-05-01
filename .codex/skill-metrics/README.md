@@ -26,10 +26,10 @@ The hook records `prompt_sha256`; copy that hash into `gold/skills.jsonl` and ad
 ## Commands
 
 ```bash
-python3 /Users/tcztzy/.codex/skill-metrics/summarize.py
-python3 /Users/tcztzy/.codex/skill-metrics/summarize.py --json
-python3 /Users/tcztzy/.codex/skill-metrics/sample_candidates.py imagegen --limit 25 --gold-template
-python3 /Users/tcztzy/.codex/skill-metrics/log_use.py caveman --source skill
+python3 $CODEX_HOME/skill-metrics/summarize.py
+python3 $CODEX_HOME/skill-metrics/summarize.py --json
+python3 $CODEX_HOME/skill-metrics/sample_candidates.py imagegen --limit 25 --gold-template
+python3 $CODEX_HOME/skill-metrics/log_use.py caveman --source skill
 ```
 
 Set `SKILL_METRICS_STORE_TEXT=0` before launching Codex to store only hashes instead of prompt/assistant text.

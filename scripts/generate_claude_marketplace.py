@@ -9,13 +9,11 @@ from pathlib import Path
 from typing import Any
 
 
-MARKETPLACE_NAME = "blackscience-tech-skills"
-MARKETPLACE_DESCRIPTION = (
-    "Research, evaluation, developer tooling, and document workflow skills."
-)
+MARKETPLACE_NAME = "personal-skills"
+MARKETPLACE_DESCRIPTION = "Personal agent skills collection."
 OWNER = {
-    "name": "Tang Ziya",
-    "email": "tcztzy@gmail.com",
+    "name": "ShirlyTaylor73",
+    "email": "shirlytaylor73@gmail.com",
 }
 
 

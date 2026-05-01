@@ -1,7 +1,7 @@
 {
-  "name": "blackscience-tech-skills",
+  "name": "personal-skills",
   "interface": {
-    "displayName": "Blackscience Tech Skills"
+    "displayName": "Personal Skills"
   },
   "plugins": [
     {

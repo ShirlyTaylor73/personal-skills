@@ -1,36 +1,33 @@
 {
   "name": "skills",
-  "version": "1.0.0",
-  "description": "Project-owned research, evaluation, developer tooling, and document workflow skills.",
+  "version": "0.1.0",
+  "description": "Personal agent skills collection.",
   "author": {
-    "name": "Tang Ziya",
-    "email": "tcztzy@gmail.com",
-    "url": "https://github.com/tcztzy"
+    "name": "ShirlyTaylor73",
+    "email": "shirlytaylor73@gmail.com",
+    "url": "https://github.com/ShirlyTaylor73"
   },
-  "homepage": "https://github.com/tcztzy/skills",
-  "repository": "https://github.com/tcztzy/skills",
+  "homepage": "https://github.com/ShirlyTaylor73/personal-skills",
+  "repository": "https://github.com/ShirlyTaylor73/personal-skills",
   "keywords": [
     "skills",
-    "research",
-    "evaluation",
-    "developer-tooling",
-    "documents"
+    "personal",
+    "agent"
   ],
   "skills": "./skills/",
   "interface": {
-    "displayName": "Blackscience Tech Skills",
-    "shortDescription": "Research and developer workflow skills",
-    "longDescription": "Install the Blackscience Tech Skills repository as a Codex plugin to access project-owned skills for research workflows, evaluation, developer tooling, and document tasks.",
-    "developerName": "Tang Ziya",
+    "displayName": "Personal Skills",
+    "shortDescription": "Personal agent skills collection",
+    "longDescription": "A personal repository of agent skills, distributed as a Codex repo plugin, a Claude Code marketplace, and a plain skills directory.",
+    "developerName": "ShirlyTaylor73",
     "category": "Productivity",
     "capabilities": [
       "Read",
       "Write"
     ],
-    "websiteURL": "https://github.com/tcztzy/skills",
+    "websiteURL": "https://github.com/ShirlyTaylor73/personal-skills",
     "defaultPrompt": [
-      "Use Blackscience Tech Skills to review a paper draft before submission.",
-      "Use Blackscience Tech Skills to simplify a codebase without regressions."
+      "List the personal skills available in this plugin."
     ],
     "brandColor": "#0F766E"
   }
