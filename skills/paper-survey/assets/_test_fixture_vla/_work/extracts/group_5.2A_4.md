@@ -1,0 +1,24 @@
+### #4 GR00T N1 (NVIDIA et al., arXiv 2025)
+
+- 标题：GR00T N1: An Open Foundation Model for Generalist Humanoid Robots
+- 作者：NVIDIA（核心贡献者 Scott Reed, Ruijie Zheng, Guanzhi Wang, Johan Bjorck 等，研究负责人 Linxi "Jim" Fan、Yuke Zhu）
+- 发表年份：2025
+- venue：arXiv preprint（NVIDIA 开放基础模型技术报告）
+- arXiv ID：2503.14734
+- 中文摘要：本文提出 GR00T N1，一款面向人形机器人的开源 VLA 基础模型，采用"双系统"架构：System 2 是预训练的 Eagle-2 VLM（SmolLM2 + SigLIP-2，1.34B 参数，10Hz 解释指令）；System 1 是 Diffusion Transformer，用 flow-matching 训练，跨注意 VLM 输出 token 并经 embodiment-specific 状态/动作编解码器生成 16-步动作 chunk（120Hz）。两模块端到端联合训练。其训练语料组成"数据金字塔"：底部是网络/人类视频（用 latent action / IDM 伪标签），中部是合成数据（DexMimicGen 模拟 540k 演示 + 视频生成模型生成的 827h 神经轨迹），顶部是真机遥操作数据（GR00T 内部 + OpenX-Embodiment + AgiBot-Alpha 共 ~140k+ 轨迹）。GR00T-N1-2B（2.2B 总参）在 RoboCasa、DexMimicGen、GR-1 三个仿真基准与 Fourier GR-1 真机双臂操作上全面超过 BC-Transformer 与 Diffusion Policy。
+- 核心方法：Vision-Language-Action 双系统架构——System 2 (Eagle-2 VLM) 处理图像与指令，取第 12 层中间 LLM 嵌入；System 1 (DiT) 用 alternating 自注意/交叉注意块对 noised action chunk + state 与 VLM token 做条件 denoising，flow-matching 损失，K=4 步推理；MLP 形式的 embodiment-specific 状态/动作编码器解决跨 embodiment 维度差 〔p.4: "GR00T N1 uses flow-matching... A diffusion transformer (DiT) processes the robot's proprioceptive state and action, which are then cross-attended with image and text tokens"〕；预训练数据采用"数据金字塔"组织真机+合成+视频/网页 〔p.2: "structure the VLA training corpora as a data pyramid"〕
+- 主要贡献：1) 设计并发布开源人形 VLA 基础模型 GR00T-N1-2B，含 dual-system VLM+DiT 架构与 flow-matching 训练；2) 提出"数据金字塔"协同训练策略，并用 latent action（VQ-VAE）与 IDM 伪标签解决无动作标签的人类视频/神经轨迹利用问题；3) 用 DexMimicGen 把数十条人类示范放大成 540k 仿真轨迹（11h 内合成，相当 6500h 人示范）；4) 在三类仿真 benchmark 上以 100 demos / task 全面超 BC-Transformer / Diffusion Policy，在真机 GR-1 上 10% 数据下达 42.6% 平均成功率 〔p.3: "We highlight three key features of GR00T N1"〕
+- 与本调研主题的关系：5.2A 大模型驱动 VLA 中"英伟达 / DiT 分层架构代表"。继承本组 #1 RT-2 与 #2 PaLM-E 的 VLM 基座思路，但与本组 #3 OpenVLA 的"动作即 token + 自回归"路线分流：GR00T N1 改走"VLM 高层 + DiT 低层 flow-matching"双系统，并把人形机器人数据稀缺问题转化为"金字塔多源协同训练"工程方案，是企业系开源 VLA 在 humanoid 方向的代表答卷。
+- 优点：1) 双系统架构兼顾语义推理 (10Hz) 与高频动作生成 (120Hz)，在 L40 上推 16-步 chunk 仅 63.9ms 〔p.3: "inference time for sampling a chunk of 16 actions is 63.9ms on an L40 GPU"〕；2) 数据金字塔解决人形数据极度稀缺：用 DexMimicGen 把数十条人示范放大到 540k 模拟演示 〔p.10: "scale a limited set of human demonstrations into a large-scale humanoid manipulation dataset"〕；3) 跨多 embodiment（单臂、双臂、人形）共享一组权重，且 latent action 在人/机器人间共享空间，潜力支持跨 embodiment 泛化 〔p.5: "this general latent action is not only consistent in different robot embodiments, but also in human embodiment"〕；4) 数据效率突出，10% 数据已逼近 Diffusion Policy 全量数据水平 〔p.15: "GR00T-N1-2B trained on just 10% of the data performs only 3.8% lower than Diffusion Policy trained on the full data"〕
+- 局限性：1) 当前只面向短时桌面操作，未处理长时 loco-manipulation 〔p.17: "our GR00T N1 model focuses primarily on short-horizon tabletop manipulation tasks"〕；2) 现有视频/合成数据生成方法在多样性、反事实场景与物理一致性上仍有局限 〔p.17: "existing methods still face challenges in generating diverse and counterfactual data, while adhering to the laws of physics"〕；3) 在大数据下 post-training 时预训练效果会逐步弱化（"in the limit of large fine-tuning datasets, that the effect of pre-training dwindles"） 〔p.16: "in the limit of large fine-tuning datasets, that the effect of pre-training dwindles"〕
+- 典型应用场景：人形/双臂/单臂跨 embodiment 桌面操作（pick-and-place、关节物体开合、工业打包/倾倒/交接、多智能体协作），以及 RoboCasa 厨房原子任务、DexMimicGen 双手任务 〔p.12: "tabletop manipulation tasks, aimed at evaluating and post-training our models on human demonstrations"〕
+- 数据集：真机部分包含内部 GR-1 人形 88h 遥操作数据 + Open X-Embodiment 子集（RT-1、Bridge-v2、Language-Table、DROID、MUTEX、RoboSet、Plex）+ AgiBot-Alpha 140k 轨迹；合成部分 540k DexMimicGen 模拟演示 + 827h 视频生成神经轨迹（约 300k）；人类视频含 Ego4D / Ego-Exo4D / Assembly-101 / EPIC-KITCHENS / HOI4D / HoloAssist / RH20T-Human 〔p.10: "rough 88 hours to 827 hours"〕
+- 评价指标：仿真 100 trial 平均成功率（取最后 5 个 checkpoint 最大值，按 RoboCasa 协议）；真机 10 trials/task 平均成功率（PackMachinery 任务用 30s 内放入 bin 的 5 件比例） 〔p.14: "average success rate over 100 trials, taking the maximum score of the last 5 checkpoints"〕
+- benchmark 数值：
+  - RoboCasa (24 tasks, 100 demos) / 平均成功率 / 32.1%（GR00T-N1-2B） 〔p.15, Tab.2〕
+  - DexMG (9 tasks, 100 demos) / 平均成功率 / 66.5%（GR00T-N1-2B） 〔p.15, Tab.2〕
+  - GR-1 (24 tasks, 100 demos) / 平均成功率 / 50.0%（GR00T-N1-2B，比 Diffusion Policy +17.3%） 〔p.15, Tab.2〕
+  - Real GR-1 全数据 / 平均成功率 / 76.8%（GR00T-N1-2B，Diffusion Policy 46.4%） 〔p.15, Tab.3〕
+  - Real GR-1 10% 数据 / 平均成功率 / 42.6%（GR00T-N1-2B，Diffusion Policy 仅 10.2%） 〔p.15, Tab.3〕
+- 一句话评述：GR00T N1 以"VLM+DiT 双系统 + 数据金字塔"为人形 VLA 提供了与 OpenVLA 路线分流的另一开源范式，是 NVIDIA 把基础模型推进到 humanoid 通用控制的标志作品。
+- 参考文献条目（GB/T 7714）：NVIDIA, BJORCK J, CASTAÑEDA F, et al. GR00T N1: An open foundation model for generalist humanoid robots[J]. arXiv preprint arXiv:2503.14734, 2025.

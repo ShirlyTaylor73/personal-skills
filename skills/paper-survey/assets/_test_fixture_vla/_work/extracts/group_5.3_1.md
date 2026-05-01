@@ -1,0 +1,24 @@
+### #1 DiffusionPolicy (Chi et al., RSS 2023)
+
+- 标题：Diffusion Policy: Visuomotor Policy Learning via Action Diffusion
+- 作者：Cheng Chi, Zhenjia Xu, Siyuan Feng, Eric Cousineau, Yilun Du, Benjamin Burchfiel, Russ Tedrake, Shuran Song
+- 发表年份：2023
+- venue：Robotics: Science and Systems (RSS) 2023 / IJRR 扩展版
+- arXiv ID：2303.04137
+- 中文摘要：本文提出 Diffusion Policy，把机器人 visuomotor 策略表示为条件去噪扩散过程。模型学习动作分布得分函数的梯度，并在推理时通过随机 Langevin 动力学迭代优化。该形式化天然支持多模态动作分布、高维输出空间、训练稳定，三个特性都直接对应模仿学习的痛点。论文进一步引入 receding horizon 闭环控制、视觉条件化（FiLM 注入）、时间序列扩散 Transformer 三项关键技术，使扩散模型可在物理机器人上实时部署。在 4 个基准 15 个任务上系统评测，相对 SOTA 平均提升 46.9%；并在真实世界单臂 Push-T、Mug Flip、Sauce Pour/Spread 与双臂 Egg Beater、Mat Unrolling、Shirt Folding 上验证。
+- 核心方法：将策略建模为 DDPM，从高斯噪声出发用 K 步去噪生成动作序列 A_t，去噪过程以视觉观测 O_t 为条件而非联合分布；并辅以 receding horizon 控制、FiLM 视觉条件、时间序列 DiT 三件套 〔p.1: "representing a robot's visuomotor policy as a conditional denoising diffusion process"〕
+- 主要贡献：1) 闭环动作序列预测，结合 receding horizon 控制实现长程规划与响应性；2) 视觉条件化使扩散模型只在动作维度去噪，提升推理速度；3) 提出时间序列 Diffusion Transformer 缓解 CNN 过平滑 〔p.2: "Closed-loop action sequences ... Visual conditioning ... Time-series diffusion transformer"〕
+- 与本调研主题的关系：DiffusionPolicy 是本子节"动作建模基础设施"代表，把扩散模型引入机器人策略，奠定后续 RDT、π0、DexVLA 等扩散 VLA 的方法基线，是动作 head 设计的开创性工作
+- 优点：天然处理多模态分布、可表达高维动作序列、训练稳定（无须负样本）、对延迟鲁棒（最高 4 步延迟仍维持峰值），在 15 个任务上平均提升 46.9% 〔p.6: "average success-rate improvement of 46.9%"〕
+- 局限性：1) 基于行为克隆，无法利用次优/负数据，未与离线 RL 结合；2) 推理延迟高于 LSTM-GMM 等简单方法，对高频控制任务不够（10 步 DDIM 推理在 3080 上 0.1s），动作序列预测仅部分缓解 〔p.13: "Second, diffusion policy has higher computational costs and inference latency"〕
+- 典型应用场景：单/双臂机械臂模仿学习，含 Push-T、Robomimic 系列、Block Push、Franka Kitchen，及真实世界 Sauce Pour/Spread、Mug Flip、Egg Beater、Mat Unrolling、Shirt Folding 〔p.10: "We evaluated Diffusion Policy in the realworld performance on 4 tasks across 2 hardware setups"〕
+- 数据集：Robomimic（PH/MH，5 任务 9 变体，每任务 200/300 PH+MH 条），Push-T（136/200 条），Block Push（1000 脚本条），Franka Kitchen（566 条），真实世界含 6DoF Pour/Spread（90 条）、Mug Flip（250 条）、Bimanual Egg Beater（210 条）、Mat Unrolling（162 条）、Shirt Folding（284 条）〔p.7: "Tab.3 ... Steps Img? HiPrec ... Lift 200 300 ..."〕
+- 评价指标：Push-T 用 IoU 覆盖率，其余任务用 success rate（最大值/最近 10 checkpoint 均值），Block Push 用 px=完成 x 个块的频率，Kitchen 用 px=与 ≥x 个对象交互的频率 〔p.8: "px is the frequency of pushing x blocks ... px is the frequency of interacting with x or more objects"〕
+- benchmark 数值：
+  - Robomimic Square (ph) / state success rate / DP-T 1.00/0.89 vs LSTM-GMM 0.95/0.73 〔p.7, Tab.1〕
+  - Robomimic Transport (mh) / state success rate / DP-T 0.62/0.35 vs BET 0.21/0.06 〔p.7, Tab.1〕
+  - Push-T / image-based success rate / DP-C 0.91/0.84 vs LSTM-GMM 0.69/0.54 〔p.7, Tab.2〕
+  - Franka Kitchen / p4 success / DP-C 0.99 vs BET 0.44 〔p.8, Tab.4〕
+  - Realworld Push-T / Success% / DiffusionPolicy E2E 0.95 vs Human 1.00 vs IBC 0.00 〔p.9, Tab.6〕
+- 一句话评述：扩散模型作为机器人动作 head 的鼻祖工作，把生成式建模的"高维 + 多模态 + 稳定"三件套精准嫁接到 visuomotor policy，是 2023 年至今几乎所有 VLA 动作 head 的共同祖先
+- 参考文献条目（GB/T 7714）：CHI C, XU Z, FENG S, et al. Diffusion Policy: Visuomotor Policy Learning via Action Diffusion[C]//Proceedings of Robotics: Science and Systems (RSS). 2023.

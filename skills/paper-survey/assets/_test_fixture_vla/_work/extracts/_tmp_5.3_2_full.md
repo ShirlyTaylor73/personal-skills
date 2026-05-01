@@ -1,0 +1,1223 @@
+--- Page 1 ---
+Genie Envisioner: A Unified World Foundation Platform for
+Robotic Manipulation
+YueLiao∗ PengfeiZhou∗ SiyuanHuang∗ DonglinYang ShengcongChen
+YuxinJiang YueHu JingbinCai SiLiu JianlanLuo LiliangChen†
+ShuichengYan⋄ MaoqingYao⋄ GuanghuiRen†⋄
+AgiBotGenieTeam LV-NUSLab BUAA
+https://genie-envisioner.github.io
+Abstract
+WeintroduceGenieEnvisioner(GE),aunifiedworldfoundationplatformforroboticmanipulation
+thatintegratespolicylearning,evaluation,andsimulationwithinasinglevideo-generativeframework.
+At its core, GE-Base is a large-scale, instruction-conditioned video diffusion model that captures
+thespatial,temporal,andsemanticdynamicsofreal-worldroboticinteractionsinastructuredlatent
+space. Builtuponthisfoundation,GE-Actmapslatentrepresentationstoexecutableactiontrajectories
+throughalightweight,flow-matchingdecoder,enablingpreciseandgeneralizablepolicyinference
+acrossdiverseembodimentswithminimalsupervision.Tosupportscalableevaluationandtraining,GE-
+Simservesasanaction-conditionedneuralsimulator,producinghigh-fidelityrolloutsforclosed-loop
+policydevelopment. TheplatformisfurtherequippedwithEWMBench,astandardizedbenchmark
+suitemeasuringvisualfidelity,physicalconsistency,andinstruction-actionalignment. Together,these
+componentsestablishGenieEnvisionerasascalableandpracticalfoundationforinstruction-driven,
+general-purposeembodiedintelligence. Allcode,models,andbenchmarkswillbereleasedpublicly.
+1 Introduction
+"Thebestwaytopredictthefutureistoinventit." —AlanKay
+Embodiedagentsthatsense,reason,andactinthephysicalworldrepresentthenextfrontierofAIsystems. Atitscore,
+afundamentalresearchchallengeremains: developingscalableandrobustroboticmanipulationcapabilities-theability
+topurposefullyinteractwithandcontrolthephysicalenvironmentthroughselectivecontact(Mason,2001). Despite
+considerableprogresshasbeenmadeinthisdomain, rangingfromanalytic(Berensonetal.,2009;Stilman,2007),
+model-basedframeworks(Ebertetal.,2018;Janneretal.,2019;Nagabandietal.,2020)todata-drivenapproachesthat
+learnmanipulationpoliciesfromlarge-scaledatasets(Blacketal.,2024;Brohanetal.,2023;Buetal.,2025b;Kimetal.,
+2024),existingsystemstypicallyrelyonapatchworkofseparatedata-collection,training,andevaluationstages. Each
+stagedemandsbespokeinfrastructure,manualcuration,andtask-specifictuning;theresultingfrictioncouldpotentially
+slowdowniteration,obscurefailuremodes,andimpedereproducibilityatscale. Thesefragmentedstagesunderscore
+theabsenceofanintegratedframeworkcapableoflearningandevaluatingmanipulationpoliciesinaunifiedmanner.
+To this end, we introduce Genie Envisioner (GE), a unified platform that collapses robot sensing, policy learning,
+and evaluation into a single closed-loop video generative world model, as illustrated in Figure 1. At its core lies
+GE-Base,aninstruction-conditioned,multi-viewvideodiffusionmodeltrainedonapproximately3,000hoursofvideo-
+languagepaireddataspanningoveronemillionreal-worldroboticmanipulationepisodesfromtheAgiBot-World-Beta
+dataset(Buetal.,2025a). Conditionedonrobot’svisualobservations,GE-Baseautoregressivelygeneratesvideochunks
+thatcapturethetemporalevolutionofmanipulationbehaviorsfollowinghigh-levelinstructions. Leveragingrobotic
+∗EqualContribution.†ProjectLeader.⋄CorrespondingAuthor.
+5202
+voN
+4
+]OR.sc[
+3v53650.8052:viXra
+
+--- Page 2 ---
+Genie EnvisionerWorld Foundation Platform
+Observation
+1M real-world robotic
+manipulation episodes
+AgiBot
+LeftView + Head View + RightView
+Instruction HistoryFrames Memory
+Pickup … Sampler
+Place Long-horizon
+… Context
+Condition Generated Video
+Latent Action
+Goal-directedRobotic Control Features Condition RenderedAction Execution
+Wipe
+Action Policy Action Models
+Iron
+ACT GR1 Octo Pack
+Execute π 0 OpenVLA ... Insert Action Chunk
+Generation for Action Execution
+Pour water Assemble box Fold clothes
+Evaluate EmbodiedVideo WorldModel
+Dataset Tools Metric Scene Motion Semantics
+diverse tasksfrom household and industrial domains perception, prediction, and control spatial, temporal, and semantic dynamic aspects
+Comprehensive Evaluation Set Multi-dimensional Toolkit Evaluation Framework
+Instruction
+PoweredbyAgiBot World
+Close-loop
+simulation
+...
+Figure 1: Overview of the Genie Envisioner World Foundation Platform. Genie Envisioner is a unified world
+foundation platform that integrates manipulation policy learning and evaluation within a single video-generative
+framework.AtitscoreliesGE-Base,alarge-scaleworldmodelthatencodesthespatial,temporal,andsemanticstructure
+of robotic interactions. Built around it are two key functional modules: GE-Act, a world action model that infers
+instruction-conditionedpolicies,andGE-Sim,avideo-basedWORLDSIMULATORthatenablesclosed-loopexecution
+throughaction-conditionedgeneration. TheplatformiscomplementedbyEWMBench,anintegratedevaluationsuite
+thatassessesvisualfidelity,physicalplausibility,andinstruction-policyalignment. GEthusprovidesapracticaland
+scalablefoundationforgeneralintelligenceembodiment.
+domainadaptationpretraining,GE-Baseestablishesamappingfromlanguageinstructionstoanembodiedvisualspace,
+capturingtheessenceofroboticmanipulationbymodelingthespatial,temporal,andsemanticregularitiesofreal-world
+interactions. Itachievesthisbyinferringlatenttrajectoriesthatjointlyencodetherobot’sperceptualinputsandthe
+anticipatedevolutionofthesceneunderplausibleactionsequences.Tobridgethegapbetweenvisualrepresentationsand
+executableroboticcontrol,weintroduceGE-Act,alightweightparallelflow-matchingactionmodel. GE-Acttranslates
+visuallatentfeatures,conditionedonlanguageinstructions,intofine-grainedandlow-latencymotorcommands,enabling
+directandefficientmappingfromperceptionandinstructiontoexecutablephysicalactions. Beyondpolicylearning,
+simulationplaysacriticalroleinenablingscalabletraining,safetyvalidation,andfastiterationforroboticsystems. To
+thisend,weintroduceGE-Sim,whichleveragestheembodiedvideogenerationcapabilitiesofGE-Baseandrepurposes
+itsgenerativedynamicsintoanaction-conditionedWORLDSIMULATOR. GE-Simsupportsclosed-looppolicyevaluation
+throughvideo-basedsimulation,achievingspeedssignificantlyfasterthanreal-worldexecution. Afterdesigningthe
+corefoundationmodel,acriticalchallengeremains: evaluatingwhetherthegeneratedvideosfaithfullysimulaterobotic
+behaviors. Thisrequiresmovingbeyondgenericperceptualmetricstoassesswhetherthesynthesizedbehaviorsareboth
+2
+
+--- Page 3 ---
+1 2 3 4 5 6
+7 8 9 10 11 12
+“Yellow candy requires a blue stamp, white candy requires a red stamp. Fold a box, place the appropriate candy
+inside, seal the box, and apply the correct stamp based on the candy type.”
+4 6 9 11
+box ready candy placed in the box Box closed Seal stamped
+Figure 2: Real-world demonstration of GE-Act on a novel robot embodiment, Agilex Cobot Magic, unseen
+duringpretraining. Withonlyonehourofembodiment-andtask-specificteleoperationdataforpost-training,GE-Act
+successfullyexecutesacomplexmanipulationtaskinvolvingfine-grainedcontrolofdeformableobjectsandmemory-
+based decision making. Given a general packaging rule, the robot is required to complete the packing process for
+eachitemaccordingly. Here,weshowcasethedetailedexecutionofthefirstpackingcycle. Therobotfirststacksa
+deformablebox,placesatargetobjectinsidebasedoninstruction,andclosesthelid,renderingtheobjectnolonger
+visible. Itthencorrectlyselectsandappliestheappropriatestamp,matchingtheobjecttype,relyingsolelyoninternal
+memory. ThisshowcasesGE’sgeneralizationtonewembodiments,itsprecisehandlingofdeformablematerials,andits
+abilitytoretaintask-relevantmemoryacrosssteps. .
+physicallygroundedandsemanticallyalignedwiththegiveninstructions. Toaddressthis,weproposetheEmbodied
+World Model Benchmark (EWMBench), a principled evaluation suite that directly benchmarks video generative
+neuralworldsimulatorsintermsofvisualfidelity,physicalconsistency,andinstruction–actionalignment. Therefore,
+GEconstructsaunifiedvideo-basedroboticvisionspacethatfacilitatesthelearning, simulation, andevaluationof
+actionpolicieswithinaperceptuallygroundedframework. Differentfrommainstreamvision-language-action(VLA)
+methods(Blacketal.,2024;Kimetal.,2024)thatrelyonvision-languagemodels(VLMs)(Aboueleninetal.,2025;
+Baietal.,2025;Chenetal.,2024)tomapvisualinputsintoasemanticlinguisticspaceandlearnactionpoliciesfrom
+thislanguage-centricrepresentation,GEconstructsavision-centricspacethroughgenerativevideomodeling. This
+spacepreservesdetailedspatialandtemporalcues,enablingmorefaithfulmodelingofrobot–environmentdynamicsand
+supportingend-to-endpolicylearningandevaluationwithinasingle,coherentplatform.
+TocomprehensivelyevaluatethecapabilitiesofGEacrossembodiedvideogeneration,policylearning,andsimulation,
+weconductextensiveexperimentsonadiversesetofreal-worldroboticmanipulationtasks.GE-Actachieveslow-latency
+end-to-endcontrolbygenerating54-steptorquetrajectorieswithin200msonacommodityGPU.Itdeliversprecise
+taskexecutiononthein-domainAgiBotG1platformanddemonstratesstrongcross-embodimentgeneralizationto
+novel systems, including Dual Franka and Agilex Cobot Magic, with only 1 hour of teleoperated demonstrations,
+outperformingtask-specificbaselines(Bjorcketal.,2025;Blacketal.,2024;Buetal.,2025b). GE-Actproveseffective
+acrossawiderangeofscenariosandtasks,includingindustrialapplicationssuchasconveyor-basedmovingobject
+manipulation,andhouseholdtaskssuchascooking,tablecleaning,andpouring. Beyondthesestandardmanipulation
+tasks,GE-Act’svisualworldmodelingenablesittohandlelong-horizon,memory-intensivesequences,asshownin
+Figure2. Furthermore,GE-Simenablespolicyrolloutevaluationatthousandsofepisodesperhourviadistributedcluster
+parallelization,substantiallyacceleratingtheassessmentofmanipulationcapabilitiesandpolicytraining. EWMBench
+providesacomprehensiveevaluationframeworkforvideo-basedworldmodels,systematicallybenchmarkingGE-Base
+againststate-of-the-artvideogenerationmodels. TheresultsrevealsuperiorperformanceofGE-Baseinroboticworld
+3
+
+--- Page 4 ---
+t ”Put the bottle in the bucket” VideoChunk VideoChunk ⍺×Num blocks cross-view
+self-attention
+crossattention C i
+(1-⍺)×Num blocks
+GE-Base Self-spatial Self-spatial Self-spatial
+Attention Attention Attention
++
+crossattention C
+timesteps i
+positions
+view-spec
+Left View FrontView RightView
+(a) Genie EnvisionerWorld Foundation Model General Framework (b) Causal Block
+F r a m e s
+N o si e
+I V n S i i t s t a u t a e lS M pa e r m s o e ry
+left
+front
+right
+auto regressive
+Figure 3: Overview of the GE-Base World Foundation Model. (a) An illustration of the autoregressive video
+generationprocess. Givenmulti-viewvisualconditions,includingtheinitialobservationandsparsememory,alongwith
+correspondingnoiseandpositionalembeddings,themodelgeneratesthenextmulti-viewvideochunkconditionedona
+languageinstruction. (b)Adedicatedcausalblockfacilitatesinformationexchangeacrossdifferentviews,ensuring
+spatialconsistencyduringmulti-viewvideochunkgeneration.
+modeling,withstrongalignmenttohumanassessments,underscoringitsroleasafoundationalcomponentoftheunified
+GEplatform.
+Together,thesecontributionspositionGenieEnvisionerasapractical,scalablefoundationforreal-worldmanipulation,
+facilitatingdownstreamresearch. Allcode,pretrainedmodels,andthecompleteEWMBenchsuitewillbeopen-sourced
+uponpublicationtoacceleratefutureresearch.
+2 GE-Base: WorldFoundationModel
+Inthissection,wepresentGE-Base,thecorecomponentofGenie-Envisioner. Ourobjectiveistoextendthepredictive
+capacityofgeneralvideogenerationmodelstowardconstructinganembodiedpredictiverepresentation—aunified
+generative formulation that anticipates future robot-environment interactions conditioned on task instructions and
+groundedintheagent’sphysicalembodiment. Tothisend,weformulateroboticvideoworldmodelingasatext-and-
+image-to-videogenerationproblem: givenalanguageinstructionandaninitialvisualobservation,themodelforecasts
+futurevideosegmentsthatreflectplausibleandcoherentroboticbehaviors. AkeydesignfeatureofGE-Baseisits
+sparsememorymechanism,whichaugmentsthecurrentvisualinputwithlong-termhistoricalcontext,enablingstronger
+temporalreasoningthroughaunifiedvisualcondition. Builtuponthisformulation,GE-Baseadoptsavideodiffusion
+transformerarchitectureandincorporatesarobotic-adaptivepretrainingstrategythattransfersknowledgefromgeneric
+videodatasetsintotheembodiedroboticdomain. WedemonstratetheeffectivenessofGE-Baseonreal-worldrobotic
+manipulation video generation. Experimental results show that GE-Base produces instruction-aligned, temporally
+coherentvideosequencesthatgeneralizewellacrossdiversemanipulationtasksandembodiments.
+2.1 BasicArchitecture
+Toalignwiththesequentialnatureofroboticmanipulationdata,weadoptanautoregressivevideogenerationframework
+thatsegmentstheoutputintodiscretevideochunks,eachcontainingN frames. Ateachstept,theworldfoundation
+modelWgeneratesthenextchunkx(t) conditionedonthreecomponents:theinitialvisualobservationx ,thelanguage
+1:N 0
+instructionq,andasparsememoryxˆ ,constructedbysparselysamplinglong-termhistoricalframesfromprevious
+0:t−1
+steps. Thegenerationprocessisformallydefinedas:
+x(t) =W(xˆ , x , q).
+1:N 0:t−1 0
+Thisformulationenablestheprogressivegenerationoftemporallycoherentvideosegments,groundedinbothvisual
+andinstructionconditions. Byintegratinglong-termsparsememoryintothevisualstate,ratherthanrelyingsolelyon
+4
+
+--- Page 5 ---
+recentframes,themodeleffectivelycapturesextendedtemporaldependencieswhilemaintainingsemanticalignment
+andvisualconsistencythroughoutthemanipulationprocess.
+Tobalanceefficiencyandcapacityinroboticvideomodeling,weadoptacompactvideogenerationmodelasthecore
+architecture. OurGE-BaseworldmodelW isdesignedwithflexibilityinmind,allowingseamlessintegrationwith
+variousdiffusiontransformer(DiT)-basedvideogenerationmodels. Specifically,weselectLTX-Video2B(HaCohen
+etal.,2024)andCOSMOS22B(Agarwaletal.,2025)asourbasemodels. LTX-Videoprovidesafasterandmore
+lightweightarchitecture,supportingefficientdownstreamactionpolicyprediction,whereasCOSMOS2offershigher-
+quality video synthesis, making it well-suited for high-fidelity simulation. Considering the egocentric nature of
+perceptionindual-armroboticsystems,weextendW intoamulti-view,language-and-image-conditionedgeneration
+frameworkthatleveragestemporallysynchronizedinputsfromthreeonboardcameras: ahead-mountedview(vh)and
+twowrist-mountedviews(vl,vr). Eachframeinx ,xˆ ,andx followsthistri-viewobservationstructure.
+0 0:t−1 t
+AsillustratedinFigure3,thegenerationpipelinebeginsbyencodingmulti-viewobservationsfromtheinitialvisual
+observationx andthesparsememoryxˆ usingasharedvideoencoderE. Foreachview,weobtainlatentvisual
+0 0:t−1
+tokens, denoted as E(v(i)) and E(v(i) ) for i ∈ h,l,r. The visual token sequence for each view is composed by
+0 t−1
+concatenatingtokensfromx andxˆ . Correspondingtoeachview,adistinctnoisemapz(i)isinitializedtoguide
+0 0:t−1
+generation. Topreservespatiotemporalalignmentwhiledistinguishingviewpoint-specificinformation,weaugment
+eachtokenandnoiseinputwithbotha2Drotarypositionalembeddinge andaview-specificlearnableembedding
+pos
+e . Theseenrichedtokensandnoisemapsfromallviewsareconcatenatedandfurtherembeddedwithatimestep
+view
+encodinge ,thenfedintotheDiTbackboneforautoregressivegenerationofthenextvideochunk.
+t
+Tofacilitatecoherentreasoningacrossmultipleviews,weextendstandardspatialself-attentionover(H,W)tocross-
+viewself-attentionover(N,H,W),whereN denotesthenumberofcameraperspectives. Hiddenstatesarereshaped
+to(B,N,T,H,W,C)toenablejointcross-viewreasoning. Toensurecomputationaltractability,cross-viewattention
+issparselyinsertedintoselectedDiTblocks,whiletheremainingblockstreatviewsindependentlybyfoldingtheN
+dimensionintothebatchdimension,yieldingashapeof(B·N,T,H,W,C). Thishybridattentionschemebalances
+view-levelconsistencyandefficiency.
+Toincorporatesemantictask-levelguidance,theinstructionq isprocessedusingafrozenT5-XXLencoder(Raffel
+et al., 2020), producing a set of text embeddings T(q). These are integrated into the visual token stream through
+cross-attentionlayerswithintheDiT,allowingthemodeltoalignvideogenerationwiththeinstructionsemantics.
+Giventhisdesign,theworldmodelW predictsthenextvideochunkxˆ as:
+t
+(cid:16) (cid:17)
+xˆ =W {v(i),v(i),z(i)} , T(q) ,
+t 0 tˆ i∈{h,l,r}
+wherev(i)andv(i)denotetheencodedinitialandhistoricalvisualtokensfromviewi,z(i)representsthecorresponding
+0 tˆ
+view-specificnoisemap,andT(q)istheencodedlanguageinstruction.
+This unified modeling paradigm enables W to jointly capture spatial layouts, temporal dynamics, and semantic
+intent—yieldingcoherentandcontrollablepredictionsofembodiedroboticbehavior.
+2.2 WorldModelPre-training
+Acorechallengeinbuildingvideo-basedworldmodelsforroboticmanipulationliesinadaptinggeneralvideogeneration
+capabilitiestothestructureddynamicsandsemanticsoftheembodiedroboticdomain. Toaddressthis,wedevelop
+a multi-stage pre-training framework that progressively aligns the model’s spatiotemporal representations with the
+distributional characteristics of real-world robot behavior. This section outlines our data curation pipeline and the
+correspondingtrainingstrategiesfordomainadaptation. Duringtraining,sparsememoryframesarerandomlysampled
+fromprecedingvideohistory,servingasaformofdataaugmentation. Thisdesignincreasesthedifficultyoffuture
+predictionandenhancesthemodel’srobustnesstotemporalvariation,ultimatelyimprovingitsgeneralizationtodiverse
+manipulationscenarios.
+DataCuration. WeadopttheAgiBot-World-Beta(Buetal.,2025a)datasetasthefoundationforpretraining. This
+datasetcomprisesapproximatelyonemillionhigh-qualityreal-worlddual-armroboticmanipulationepisodes,totaling
+2,967 hours, collected via human teleoperation. The dataset spans a diverse range of tasks, object categories, and
+5
+
+--- Page 6 ---
+Agibot World 7days x 32 x GPU 3days x 32 x GPU
+Water Convey Sweep Video Frames Video Frames
+the flowers merchandise the floor
+Sampling Rate~3-30HZ Sampling Rate=5HZ
+Stage1: Multi-Resolution Adaption Stage2: Low-Frequency Alignment
+Insert a book Place the pen into Wash dishes
+into the bookshelf the pen holder with dishwasher Video Diffusion Video
+Encoder Transformer Decoder
+Figure4: OverviewoftheGE-BaseTrainingProcess. GE-Baseispre-trainedonAgiBot-World-Beta,alarge-scale
+real-worlddual-armroboticmanipulationdatasetcontaining1millioninstruction-aligned,multi-viewvideosequences.
+Thetrainingbeginswithadomainadaptationphase,transferringgeneralvideogenerationcapabilitiesintotherobotic
+domainusinghigh-frame-ratesequencesandmixedsamplingstrategiestoenhancerobustness. Thisisfollowedbya
+low-frame-ratefine-tuningstagedesignedtoalignthemodelwiththetemporalresolutionrequiredfordownstream
+actionpolicytraining. Throughouttheprocess,thevideoencoderandvideodecoderremainfixed.
+environments,witheachtrajectoryannotatedwithnaturallanguageinstructions,multi-viewvisualobservations,and
+structuredactionpolicies. Toadaptthedatasetforvideo-basedmodeling,weextracttemporallysynchronizedvideo
+streamsfromthreecalibratedcameraviewpointsandensuresemanticconsistencybetweeneachvideosegmentandits
+pairedinstruction. Thispreprocessingstepresultsinhigh-qualitytext–videopairsthatreflectcoherentandexecutable
+manipulationbehavior. Toaccommodatedifferentlearningobjectivesacrosspretrainingstages,weemployvariable
+framesamplingstrategiesthatbalancetemporalresolutionandtrainingstability.
+StageI:Multi-ResolutionTemporalAdaptation(GE-Base-MR).Thefirststageaimstobridgethegapbetween
+genericvideorepresentationlearningandrobotic-specificmotiondynamics. Wepretrainthemodelon57-framevideo
+sequencesrandomlysampledatframeratesbetween3Hzand30Hz. Eachtrainingsampleincludesfoursparsememory
+frames,randomlydrawnfrompriorvideohistorytoenhancetemporaldiversity. Theseclipsareencodedintoan8-frame
+latentspaceviaapretrainedVAE,wherenoiseisaddedandthemodelisoptimizedthroughadenoisingobjective.
+Thistrainingsetupexposesthemodel,referredtoasGE-Base-MR,toawidespectrumofmotionspeedsandtemporal
+patterns,encouragingittolearnspatiotemporalrepresentationsinvarianttosamplingrates. Conditioningonbothvisual
+observationsandlanguageinstructions,themodellearnstomaphigh-leveltaskintenttolow-levelvisualdynamics
+whilemaintainingrobustnesstopartialobservations. Thisdesignisessentialforreal-worlddeployment,wheresensor
+latency, frame drops, and asynchronous data are common. After this stage, GE-Base-MR is capable of generating
+high-qualityroboticmanipulationvideosthataccuratelycapturemotiondynamicsandvisualconsistency. Themodelis
+trainedend-to-endontheAgiBot-World-Betadatasetusing32NVIDIAA100GPUsforapproximatelysevendays.
+StageII: Low-FrequencyPolicyAlignment(GE-Base-LF).Toimprovetrainingefficiencyandbetteralign with
+thetemporalabstractionusedindownstreamactionmodeling,wefine-tuneGE-Base-MRusinglow-frame-ratevideo
+sequences. Specifically,wesample9-frameclipsatafixedrateof5Hzandprovide4additionalsparsememoryframes
+astemporalcontext. Thesesequencesaremappedintoacompactlatentspaceconsistingoftwolatentframesviaa
+pretrainedvideoencoder,whoseparametersremainfrozen. Onlythevideogenerationcomponentsareupdatedduring
+thisphase. Theresultingmodel,GE-Base-LF,isoptimizedtocapturesemanticallymeaningfultransitionsundersparse
+visualsampling. Trainingremainsend-to-endforthegenerativepathwayandisconditionedonbothtaskinstructions
+and visual conditions. This process effectively aligns the video DiT with the temporal abstraction used in control,
+enablingreliablevideofeedbackatthegranularityofdiscreteactionsteps. GE-Base-LFservesasacriticalfoundation
+forsubsequentactionmodelpretrainingandistrainedforapproximatelythreedaysusing32NVIDIAA100GPUs.
+6
+
+--- Page 7 ---
+“Pick up the milk from the refrigerator”
+“Place the held potato into the plastic bag in the shopping cart”
+Figure5: Multi-ViewRoboticManipulationVideosGeneratedonAgiBotG1byGE-Base. Wevisualizerobotic
+manipulationsequencesgeneratedbyGE-Baseacrosstwotasksinvolvingvariedobjectsandenvironments. Foreach
+example,videosfromthreeviewsarepresented,i.e.,thehead-mounted,left-,andright-armcameras,respectively.
+2.3 RoboticManipulationVideoGenerationviaGE-Base
+Wegeneratedual-armroboticmanipulationvideosusingGE-Base,leveragingtheLTX-Video2Barchitecture(with
+additionalbasearchitecturescurrentlybeingexplored). Thisprocessfollowsanautoregressiveapproach,whereeach
+stepgeneratesanewvideochunkconditionedontheinitialobservation,aseriesofmemoryframes,andthelanguage
+instruction. Thegenerationproceedsiterativelyuntilthetaskspecifiedbytheinstructionisfullyexecuted,resultingina
+seamlessvideosequencethatpreciselycapturesthecompletemanipulationprocedure.
+Atinferencetime,memoryframesareuniformlysampledfrompriorvideochunksatfixedintervals,ensuringstable
+temporaldynamicsandconsistentprediction. Weevaluatethispipelineonreal-worlddual-armroboticmanipulation
+tasks. AsshowninFigure5,GE-Basegeneratesmulti-viewvideosthataccuratelyreflectdiverselanguageinstructions.
+Theresultshighlightthemodel’sabilitytomaintainspatialconsistencyacrossviews,preservebackgroundandscene
+structure,andproducestable,step-by-stepexecutionalignedwiththeinstructionsemantics. Furtheranalysisofvideo
+generationqualityisprovidedinthebenchmarksection(Section6).
+7
+
+--- Page 8 ---
+Video DiT Block
+Action
+DiT Block
+Video DiT Block Action
+DiT Block
+Norm & Out Norm & Out
+Video Token Action Token
+GE-BaseWorldFundation Model ActionModel
+VideoEncoder
+TextEncoder
+Noised Action
+14 DOF Wheeled
+Humanoid Robot
+Dual Franka
+16DOF Bimanual Manipulator
+AgileX Cobot
+Magic
+14DOF Mobile
+Instruction Manipulator
+“Place cutlery in the restaurant”
+ManipulationTrajectory
+In
+Domain
+Cross
+Embodied
+AgiBotG1
+𝐵𝑣𝑖𝑠
+𝑖
+𝐵𝑎𝑐𝑡
+𝑖
+𝐵𝑣𝑖𝑠
+𝑖 + 1 𝐵𝑎𝑐𝑡 𝑖 + 1
+Figure 6: Overview of the GE-Act World Action Model. GE-Act extends the GE-Base foundation model by
+incorporatingaparallelactionbranchthatconvertsvisuallatentrepresentationsintostructuredactionpolicytrajectories.
+ItfollowsthesameblockdesignanddepthasGE-Basebutreducesthehiddendimensionstoimproveefficiency. Visual
+latent features are integrated into the action pathway through a cross-attention mechanism, ensuring the semantic
+groundingofactions. Finalactionpredictionsaregeneratedusingadiffusion-baseddenoisingflow-matchingpipeline,
+refiningnoisyactionpredictionsintocoherentactiontrajectories.
+3 GE-Act: WorldActionModel
+Bridginghigh-levelworldmodelingandlow-levelcontrolisessentialfordeployingvision-languagefoundationmodelsin
+embodiedrobotics. WepresentGE-Act,aplug-and-playworldactionmodulethataugmentsthefastLTX-Video–based
+GE-Base foundation model with a lightweight 160M-parameter autoregressive action decoder. GE-Act translates
+multimodallatentrepresentations—conditionedonmulti-viewvisualobservationsandlanguageinstructions—into
+temporallystructuredactionpolicies,enablinginstruction-followingbehaviorswithoutexplicitvideogeneration. This
+architecturetightlycouplesperceptionandcontrol, providingascalableandefficientsolutionforreal-timerobotic
+manipulationacrossdiverseenvironments.
+3.1 BasicArchitecture
+GE-Act is a plug-and-play world action module that extends the GE-Base foundation model to enable instruction-
+conditionedroboticcontrol. Architecturally,itoperatesinparallelwiththevisualbackboneofGE-Base,adoptingan
+autoregressiveDiT-baseddesignthattransformslatentvisualrepresentationsintotemporallystructuredactionpolicies.
+Thisintegrationbridgeshigh-levelperceptualunderstandingwithlow-levelmotorexecution,supportingseamlesspolicy
+generationfrommulti-viewvisualobservationsandlanguageinstructions.
+AsshowninFigure6,GE-ActpreservesstructuralalignmentwithGE-BasebymirroringitsDiTblockdepthwhile
+employingareducedhiddendimensiontoensurecomputationalefficiency. Ateachstep,thefoundationmodelprocesses
+visualtokensderivedfrominitialobservationsx andsparselysampledhistoricalframesxˆ ,conditionedoninstruction
+0 t−1
+embeddingsT(q):
+v =Bvis(v ,T(q)),
+i i in
+wherev denotestheinputvisualtokens,andBvisrepresentsthei-thvisualDiTblockinGE-Base.
+in i
+Simultaneously,theactionpathwayinGE-Actprocessesnoise-initializedactiontokensz viaacorrespondingsetof
+act
+action-specifictransformerblocksBact,incorporatingrelevantcontextualinformationthroughcross-attention:
+i
+a =Bact(z ,CrossAttn(z ,v )),
+i i act act i
+wherea denotestheoutputactionrepresentation.
+i
+8
+
+--- Page 9 ---
+3 days x 16 x GPU
+Agibot World
+Video Frames Video
+Video DiT
+Sampling Rate=5HZ Encoder
+54 steps action sequences at 30 Hz
+Action DiT Action Loss
+Stage1: Action Pre-training
+12 hours x 8 x GPU
+Video
+Video Frames Video DiT Video Loss
+Encoder
+Sampling Rate=5HZ
+Action DiT
+Stage2: Task-Specific Video Adaptation
+24 hours x 8 x GPU
+Task-specificData
+Video Frames Video
+Video DiT
+Sampling Rate=5HZ Encoder
+Pick Stack Pour Fold
+54 steps action sequences at 30 Hz
+Twist Pack Close … Action DiT Action Loss
+Stage3: Task-Specific Action Specialization
+Figure7: OverviewoftheGE-ActTrainingPipeline. GE-ActisderivedfromtheGE-Basefoundationmodelthrough
+athree-stagetrainingprocessutilizingtext–video–policytripletsfromtheAgiBot-World-Betadataset. Thefirststage
+performsaction-spacepretraining, wherethevisualbackboneisoptimizedtoprojectvideosequencesintoalatent
+action policy space. Subsequently, a two-stage task adaptation procedure is conducted to specialize the model for
+diversedownstreamtasks. Inthisphase,thevideoencoderisfirstadaptedusingtask-specificvisualdata,followedby
+fine-tuningoftheactionheadusingcorrespondingcontrolsignals.
+ThismodulararchitectureallowsGE-Acttooperateentirelywithinthelatentfeaturespace,enablingcontrolinference
+withoutrequiringexplicitvideogenerationduringdeployment. Whenintegratedintoreal-worldsystems,themodelcan
+directlyconsumeliveperceptualinputs,maintainingpolicyconsistencythroughaclosed-loopformulation.
+3.2 TrainingProcedure
+Weadoptatwo-stagetrainingparadigminspiredbystandardvision-language-action(VLA)manipulationframeworks,
+consistingoftask-agnosticpretrainingfollowedbytask-specificadaptation.
+Pre-training. Duringthepretrainingphaseoftheactionmodel,weleveragetheAgiBot-World-Betadatasettospecialize
+thepretrainedvisual-linguisticrepresentationsforactionpolicylearning. TheworldmodelW isinitializedwithfixed
+parametersfromGE-Base-LFtoretainitsspatiotemporalandsemanticpriors,whileonlytheparametersoftheaction
+decodingmoduleareupdated. Toreducecomputationaloverhead,videogenerationisdisabledduringtraining. Instead,
+low-frame-ratevisualmemorysequences,consistingoffourframessampledat5Hz,areusedasconditioninginputs,
+whilethemodelpredictshigh-frequencyactionsequencescomprising54stepsat30Hz. Thetrainingissupervised
+solelybyground-truthactiontrajectories,enablingthemodeltolearncontrol-relevantdynamicsentirelywithinthe
+pretrainedlatentspace. ThisprocesscompletesinapproximatelythreedaysonaclusterofsixteenNVIDIAA100GPUs.
+Task-specificadaptationtuning. Toadaptthepretrainedmodelfordownstreamrobotictasks,weemployatwo-stage
+fine-tuningpipelinecomprisingvideoadaptationandactionspecialization,aimedataligninggeneralvisual-linguistic
+representationswithtask-specificexecutionrequirements. Duringthevideoadaptationphase,weupdateonlythevideo
+generationcomponentsoftheworldmodelW,keepingtheremainingparametersfrozen. Fine-tuningisconductedona
+compositedatasetconsistingofthefullAgiBot-Worldcorpusandatask-specificsubset,withthelatterupweightedbya
+factorof10tostrengthentaskalignmentwithoutsacrificinggeneralization. Thesamplingprotocolisconsistentwith
+thatusedinGE-Base-LFtopreservetemporalcoherence. Thisphaseiscompletedusing8NVIDIAA100GPUsover
+approximately12hours. Inthesubsequentactionspecializationphase,thefullmodel—includingboththeGE-Base
+backboneandtheactionmodule—isfine-tunedexclusivelyontask-specificdatatocapturefine-grainedcontroldynamics.
+Thisproceduremirrorstheactionpretrainingsetupandfollowsthesamesamplingstrategytoensuretemporaland
+control-levelconsistency. Thisstageistrainedusing8NVIDIAA100GPUsforapproximately36hours.
+9
+
+--- Page 10 ---
+3.3 AsynchronousInference
+Tobridgethetemporalgapbetweenvisualprocessingandmotorcontrol,weintroducetheSlow-FastAsynchronous
+Inferencemode,whichoptimizescomputationalefficiencybyexploitingasymmetriesattwocriticallevels: denoising
+complexityandtargetfrequency.
+Asymmetric Denoising Strategy. Our inference pipeline allocates computational resources based on the distinct
+requirementsofeachmodality. ThevideoDiTperformsasingleflow-matchingdenoisingstepperinferencepassto
+generatevisuallatenttokens,whicharethencachedandreusedthroughouttheactiongenerationphase. Theaction
+model,requiringhighertemporalresolutionforprecisecontrol,executesfivedenoisingsteps,allconditionedonthe
+samecachedvisualrepresentations. Thisapproachensuresthattheforwardpassfor54stepsiscompletedin200mson
+anonboardNVIDIARTX4090GPUmountedonareal-worldrobot,ensuringreal-timeinferencecapability.
+Beyondimprovingthedenoisingprocess,weexploittheinherentfrequencymismatchbetweenvisualperceptionand
+motorcontrol. ThevideoDiToperatesat5Hz,whiletheactionmodelrunsat30Hz,resultinginatemporalresolution
+ratioof1to6. Thisdecouplingenablessparsevideopredictionalongsidedenseactiongeneration. Byrepresentingonly
+selectedfuturevideoframes,wesignificantlyreducethedimensionalityofthevideolatentspace,eliminatingtheneed
+toprocesshigh-frequencyvisualsequences. ThisdesignallowsthevideoDiTtooperateefficientlyinacompactlatent
+space,whiletheactionmodelretainsthefulltemporalresolutionnecessaryforaccurateandresponsivecontrol.
+Thisdual-leveloptimizationdeliverssubstantialadvantagesforbothtraininganddeployment. Duringtraining, we
+eliminatethetypicalbottleneckcausedbyvideoloadinganddecodingbyinitializinghiddenstateswithrandomGaussian
+noise,optimizingthetrainingprocessforlarge-scalevideomodels. Indeployment,thecombinationofsingle-stepvideo
+denoisingandreducedlatentdimensionalityenablesefficientreal-timeoperationonrobotichardware,facilitatingthe
+seamlessintegrationofvideogenerationandactionexecution.
+3.4 ActionPlanningviaGE-ActonAgiBotG1
+GR00T UniVLA π GE-Act Slow GE-Act Fast
+0
+Heat food Packing detergent
+Make a sandwich Pour a cup of tea Clean the table
+in the microwave from conveyor
+Figure8:ComparisonofTask-SpecificReal-WorldRoboticManipulationPerformanceontheAgiBotG1Platform.
+WecompareGE-Actwithstate-of-the-artVLAbaselinesacrossmultiplereal-worlddual-armrobotictasks,usingtwo
+evaluationmetricstoassessperformance.
+To rigorously assess the effectiveness of our approach in real-world robotic manipulation, we conduct extensive
+evaluationsacrossfiverepresentativetasks,eachdesignedtotestdistinctaspectsofcontrolprecision,taskcomplexity,
+andgeneralization. Theseinclude: (1)Makeasandwich: sequentiallyassemblingbread,bacon,lettuce,andbread,
+whichtestsmulti-objectcoordination,spatialreasoning,andproceduraltaskexecution;(2)Pouracupoftea: involving
+grasping,precisepouring,andrepositioningateapot,highlightingtheneedforfine-grainedmotioncontrolanddexterity
+influidmanipulation;(3)Cleanthetable: requiringtherobottograspawiperandperformconsistentwipingmotionsto
+removesurfacestains,evaluatingtrajectorystabilityandcompliantforceapplication;(4)Heatfoodinthemicrowave:
+operatingamicrowavedoor,insertingabowl,andinteractingwithbuttons,challengingthesystem’sabilitytohandle
+articulatedobjectsandmulti-stageinterfaceoperations;(5)Packlaundrydetergent: graspingmovingdetergentbags
+from a conveyor belt and placing them into boxes, designed to assess dynamic perception, motion tracking, and
+industrial-scalemanipulation. Thesetasksspanbothhouseholdandindustrialsettings, providingacomprehensive
+benchmarkforevaluatinginstruction-conditionedcontrol,temporalgrounding,andclosed-loopexecutioncapabilities.
+10
+
+--- Page 11 ---
+“Use the sponge held in the right arm to wipe the stains clean”
+“Pour water into the cup on the table”
+“Make a sandwich”
+“Packing washing detergentfrom the conveyor belt”
+Figure9: VisualizationofReal-WorldRoboticManipulationonAgiBotG1viaGE-Act. Conditionedonnatural
+languageinstructions,GE-ActgeneratesandexecutesactionpoliciesontheAgiBotG1platform. Thevisualsamples
+demonstratethemodel’scapabilitytoproduceconsistent,reliable,andcontextuallyappropriatemanipulationbehaviors,
+showcasingitsrobustnessandeffectivenessinreal-worldenvironments.
+Evaluation Protocols. We employed two evaluation metrics to assess performance: Step-wise Success Rate (SR)
+andEnd-to-EndSuccessRate(E2E).TheSRmetricevaluateseachsub-stepindependentlyandcomputestheoverall
+successastheratioofsuccessfullycompletedsub-stepstototalsub-steps,providingfine-grainedinsightintopartial
+taskcompletion. Incontrast,theE2Emetricevaluatesonlythefinaloutcomeofthecompletetask,allowingmultiple
+attemptsforindividualsub-stepsduringexecution,whichbetterreflectsreal-worlddeploymentscenarioswhererobots
+canrecoverfromintermediatefailures.
+PerformanceComparisonontheAgiBotG1Platform. WebenchmarkGE-ActagainsttwoleadingVLA-based
+roboticmanipulationmodels: UniVLA(Buetal.,2025b),thestate-of-the-artmethodontheLIBERObenchmark(Liu
+etal.,2023),andGR00TN1(Bjorcketal.,2025),alarge-scaleVLAfoundationmodel. Allmodelsareevaluatedonthe
+AgiBotG1platformfollowingthesametaskprotocolsandusingidenticaltask-specificteleoperateddemonstrationsfor
+fine-tuning. AsshowninFigure8,GE-ActconsistentlyoutperformsbaselinemodelsacrossbothSRandE2Emetrics
+onarangeofreal-worlddailymanipulationtasks. ThisperformancegainisattributedtothepretrainedGE-Baseworld
+foundationmodel,whichsuppliesstrongspatiotemporalpriorsandprecisevisual-languagegrounding,enablingmore
+efficientandrobustadaptationtodiversedownstreammanipulationscenarios.
+Wefurthervalidatethisdesignthroughtwooperationalmodes: thestandardmode,whichsynchronizesvisualandaction
+updates,andthefastmode,whichleveragestemporalabstractionsforimprovedefficiency. AsdemonstratedinFigure8,
+thefastmodeachievescomparableorsuperiorperformanceacrossvariousmanipulationtasks,particularlyexcellingin
+latency-sensitivescenariossuchasdynamicobjecttrackingandreactivegrasping. Notably,onshort-horizontaskslike
+"Packingdetergentfromconveyor,"whichrequirerapidactiongeneration,thefastmodelsignificantlyoutperforms
+11
+
+--- Page 12 ---
+“Folding the greyclothes”
+“Folding the blueclothes”
+“Folding the box”
+Figure10: Multi-ViewVideoGenerationontheAgilexCobotMagicRoboticPlatformbyGE-Base. Visualization
+ofinstruction-conditionedvideogeneratedbyGE-Basefortwocomplexfoldingtasksonthecross-embodimentAgilex
+CobotMagicrobot. Eachrowdisplaystemporallysampledframesfromamulti-viewsequence.
+thestandardmodel. QualitativeresultsarevisualizedinFigure9,showcasingGE-Act’sabilitytoexecutecomplex
+manipulationtaskspreciselyandreliablyinreal-worldsettings,directlyconditionedonnaturallanguageinstructions.
+Analysis. To systematically analyze our GE model, we conduct real-world robotic manipulation experiments on
+the AgiBot-G1 platform. We select a stable and controllable task, "grasping a red cylinder from the table and
+placing it into a paper cup with fixed positions", using a dataset of 305 demonstrations. All models are trained
+for 40,000 steps under the same protocol. Our analysis focuses on the role of pretraining in action policy predic-
+tion,comparinggeneralvideopretrainingwithin-domainembodiedpretraining(AgiBot-World-Beta). Asshownin
+Table1,trainingfromscratchoradaptingfromageneralvideomodelsuchasLTX-Videoyieldsnear-zerosuccess.
+In contrast, in-domain pretraining achieves 64 SR and
+81 E2E, which further improve to76% and 89% when Table1: AnalysisofPre-training. ‘S’denotesinclusionof
+combinedwithgeneralvideopretraining. Wefurthervali- robotstate;‘VidAW’indicatesinitializationfromGE-Base,
+datetheeffectivenessofincorporatingrobotstateasinput, ‘VidAda’indicatestask-specificvideoadaptation.
+E2E SR
+which yields additional performance gains. However, VidAW VidAda
+whenapplieddirectlytogeneralvideo-pretrainedmodels, w/S w/oS w/S w/oS
+the inclusion ofstate information reducesperformance ✗ ✗ 0.15 0.30 0.05 0.11
+due to short-cut learning effects. These results demon- ✗ ✓ 0 0.05 0 0
+strate that the GE-Base pretrained world model offers ✓ ✗ 0.81 0.49 0.64 0.26
+strongrepresentationsandservesasasolidfoundationfor ✓ ✓ 0.89 0.37 0.76 0.37
+actionpolicyprediction.
+4 Cross-EmbodimentGeneralizationwithGenieEnvisioner
+BeyondvalidatingGEonthein-domainAgiBotG1platform, weassessGE’sabilitytogeneralizeacrossdifferent
+embodiments,anessentialsteptowarddevelopingaversatileroboticfoundationmodel. Specifically,weevaluateGEon
+twowidelyusedroboticplatformsinmanipulationresearch:theFrankaarmandtheAgilexCobotMagicsystem,aswell
+asadual-armsimulator,RoboTwin. Tomaintainconsistencywithourdual-armframework,allplatformsareconfigured
+accordingly.. Tomaintainconsistencywithourdual-armframework,bothplatformsareconfiguredaccordingly.
+Due to differences in embodiment design and action space, directly deploying the pretrained GE models on new
+platforms is not feasible. To overcome this, we use a few-shot adaptation protocol, collecting a small number of
+high-qualityteleoperateddemonstrationsforeachtask. Thesedemonstrationsareusedtofine-tuneboththeGEand
+GE-Actmodels,enablingeffectivetransferandalignmentwiththenewplatforms. Inadditiontothestandardtaskseton
+AgiBotG1,weevaluateGEoncomplexdeformableobjectmanipulationtaskssuchas"clothfolding"and"boxfolding",
+selectedfortheirreal-worldrelevanceandphysicalchallenges. ThisframeworkprovidesathoroughevaluationofGE’s
+transferability,robustness,andcontrolprecisionacrossdifferentroboticplatforms
+12
+
+--- Page 13 ---
+4.1 Few-shotAdaptation
+Toenablefew-shotadaptationonanovelroboticembodiment,weadoptatwo-stagetask-specificfine-tuningstrategy
+forGE-Act,asillustratedinthefinaltworowsofFigure7:
+• Inthefirststage,weadaptthevisualgenerativecomponenttothenewembodimentdomainbyfine-tuningthe
+videoDiTmoduleusingasmallsetofnewlycollectedinstruction-conditionedvideodemonstrations. During
+thisprocess,theCLIP(Radfordetal.,2021)andvideoencodersarekeptfrozentopreservepretrainedsemantic
+andperceptualpriors. Thisstepenablesthemodeltosynthesizerealistic,embodiment-consistentmanipulation
+videosalignedwiththenewplatform’svisualcharacteristics.
+• Inthesecondstage,wetrainanewactionDiTmodulefromscratchusingtask-specificteleoperatedtrajectories.
+Owingtofundamentaldiscrepanciesintheembodimentstructureandactionspacesemantics,thepretrained
+actiondecoderisnotreused. Instead,weretaintheGE-Basevisualbackboneandlearnanewactionhead
+tailoredtothecontroldynamicsandinterfaceofthenovelroboticplatform.
+This two-stage adaptation pipeline facilitates effective transfer of both perceptual and motor capabilities, enabling
+high-fidelityvideogenerationandaccurate,instruction-drivenpolicyinferenceunderminimaldatasupervision.
+(a)Franka (b)AgilexCobotMagic (c)RoboTwin
+Fold clothes Fold clothes Fold cardboard box
+Grabroller Handovermic Liftpot Movecanpot
+GR00T UniVLA π GO-1 GE-Act
+0
+Figure11: ComparisonofTask-SpecificManipulationPerformanceonVariousEmbodiments.
+4.2 GeneralizationtoAgilexCobotMagicEmbodiment
+WeevaluatethegeneralizationcapabilityofGEontheAgilexCobotMagicplatformusingtwocomplextasks: "box
+folding"and"clothfolding". Foreachtask,wecollect250high-qualityteleoperateddemonstrations—approximately1
+hourofdata—usingtheAloha-basedteleoperationsystem(Fuetal.,2024).Thesedemonstrationsserveastheadaptation
+datasettofine-tunebothGE-BaseandGE-Act.
+AsshowninFigure11,wecompareGE-Actwiththreestate-of-the-artVLAmodels: GR00TN1(Bjorcketal.,2025),
+π (Blacketal.,2024),andUniVLA(Buetal.,2025b). Allmodelsarefine-tunedonthesamedatasetforthesetasks.
+0
+The experimental results clearly show that GE-Act outperforms all three models. While UniVLA and GR00T N1
+demonstrate strong capabilities in simpler tasks like pick-and-place, their lack of precision in positioning and task
+executionleadstofailurewhenconfrontedwithcomplexandfine-grainedtasks,achievingasuccessrateof0%. Only
+with human intervention can UniVLA complete a few steps. In contrast, π , known for its strong performance in
+0
+deformableobjectmanipulation,surpassesUniVLAandGR00TN1intheseareas. However,GE-Actsignificantly
+outperformsπ incomplex,fine-graineddeformableobjectmanipulationtasks. Thisenhancementisprimarilydueto
+0
+theGE-Basefoundationmodel,which,throughlarge-scalepretrainingonreal-worlddata,enablesGE-Acttoachieve
+bettertaskadaptationandembodimentgeneralization. Asaresult,GE-Actdeliverssuperiorperformanceacrossawide
+rangeofroboticplatformsandmanipulationscenarios.
+AsillustratedinFigure10,ouradaptedGE-Actmodelgeneratescoherent,instruction-conditionedmulti-viewvideos
+fortheclothfoldingandboxfoldingtasks. Thesevideosaccuratelycapturebothrigidandnon-rigidobjectdynamics
+withhighfidelity. TheresultsdemonstratestrongconsistencyacrossdifferentcameraviewsandshowcaseGE-Act’s
+robusthandlingofcomplexobjectdeformations. Furthermore,asshowninFigure12,wepresentreal-worldexecutions
+oftheclothfoldingandboxfoldingtasksusingtheadaptedGE-Actmodel. TheseresultsconfirmGE-Act’sabilityto
+13
+
+--- Page 14 ---
+“Folding the box”
+“Folding the clothes”
+Figure12: VisualizationofReal-WorldDemonstrationswithGE-ActonAgilexCobotMagicPlatform. This
+showsGE-ActadaptedtoanovelAgilexCobotMagicembodiment,performingreal-worldroboticmanipulationtasks,
+includingcloth-foldingandbox-folding.
+completethetaskswithhighprecisionandreliabilityonanovelroboticembodiment,furtherreinforcingthecapacityof
+GE-Basetotransfereffectivelytonewembodiments. ThisexperimentsolidifiesthepotentialofGE-Baseasascalable,
+adaptablefoundationforreal-worldembodiedintelligence.
+4.3 GeneralizationtoDualFrankaEmbodiment
+WefurtherevaluateGE’scross-embodimentgeneralizationontheDualFrankaplatformbyperformingembodiment-
+andtask-specificadaptationofGE-Actusing250teleoperatedepisodes(approximatelyonehour)ontheclothfolding
+task. Duetotheabsenceofadedicatedteleoperationinterface,datacollectiononDualFrankaisconductedusinga
+simplerspace-mouse-basedcontrolsystem. ConsistentwiththeAgilexCobotevaluation,weadoptGR00TN1(Bjorck
+et al., 2025), π (Black et al., 2024), and UniVLA (Bu et al., 2025b) as baselines, and fine-tune each on the 250-
+0
+episodeadaptationdataset. Figure13illustratestheclothfoldingtaskontheDualFrankaplatform,includingboththe
+future-spacevideopredictionsbyGE-Baseandthereal-worldmanipulationresultsexecutedbyGE-Act. Theresults
+indicatethatGEeffectivelymodelstask-relevantvisualdynamicsandgeneralizestonewembodimentsforprecise
+manipulation. AsshowninFigure11,GE-Actconsistentlyoutperformstask-specificbaselinesinreal-worldexecution
+ontheDualFrankaplatform,mirroringtrendsobservedontheAgilexCobotMagic. Notably,whileπ andGR00TN1
+0
+wereextensivelytrainedonlarge-scaledatafromtheFrankaembodiment,GE-Actachievessuperiorperformancewith
+onlyonehourofadaptationdata.
+4.4 GeneralizationtoRoboTwin
+Wefurtherevaluatethecross-embodimentgeneralizationonthedual-armsimulatorRoboTwin(Chenetal.,2025).
+Weadoptanall-in-onestrategy,jointlyfine-tuningGE-Actonfourtasksusing200demonstrations(50pertask),and
+directlyevaluatingthisunifiedmodelacrossalltasks. Incontrast,baselinemethods(Blacketal.,2024;Buetal.,2025a)
+performtask-specificadaptation. AsshowninFigure11,GE-Actachievesbetterperformancethanπ andGO-1on
+0
+14
+
+--- Page 15 ---
+“Foldtheyellowclothes”
+(a)Multi-View Video Generation on the Dual Franka
+“Foldtheblueclothes”
+(b)Real-World Robotic Manipulation on the Dual Franka
+Figure13: VisualizationofRoboticVideoGenerationandReal-WorldManipulationonDualFrankaviaGE.
+threeofthefourtasks,despitenotusingaone-task-one-modelsetting,andisonlyslightlybehindVLAmethodsonlift
+pot. Thisminorgapmaybeattributedtotaskinterferenceintroducedbyjointtraining.
+5 GE-Sim: WorldSimulator
+Tosupportreal-world-alignedevaluationandclosed-loopcontrol,wedevelopavideo-basedworldneuralsimulator
+thatgeneratestemporallycoherentvisualpredictionsconditionedonroboticactions. Thisneuralsimulatorenables
+embodiedpolicymodelstointeractwithaconsistentvisualenvironment,decoupledfromphysics-basedconstraints,and
+servesasaunifiedtestbedforpolicylearningandgeneralizationacrossdiversetasks.
+WerealizethiscapabilitybyextendingtheGE-Basefoundationmodelintoanaction-conditionedsimulator,GE-Sim. In
+thisframework,actiontrajectoriesserveastheprimarycontrolsignalsdrivingvideosynthesisovertime. Toimplement
+GE-Sim,weadopttwoGE-Basearchitectures: thefastLTX-Video–basedvariantusedinGE-Act,andtheCOSMOS2
+2B–basedvariantforhigh-fidelitysimulationandrealisticvideogeneration. Tomaintainvisualconsistencyacross
+generatedframes,weincorporateareferenceimageencodedbyafrozenCLIPimageencoderasalightweightstyle
+anchor. Thisreferenceisinjectedviacross-attentionintoeachDiTblock,complementingthespatialgroundingprovided
+byvisualobservations.
+Afundamentalchallengeinthistransformationisreconcilingthesemanticdisparitybetweenlow-levelcontrolcommands
+andthehigh-levellatentrepresentationsencodedbythepretrainedworldmodel.Toaddressthis,asdepictedinFigure14,
+weintroduceahierarchicalaction-conditioningmechanismthatintegratesstructuredactionrepresentationsdirectlyinto
+thetokenspaceofGE-Base. Thisarchitecturepreservesthemodel’spretrainedspatiotemporalsemanticswhileenabling
+seamlessinterfacingwithawiderangeofpolicymodels,therebyfacilitatingclosed-loop,action-conditionedneural
+simulationwithrobustgeneralizationtodiverserobotictasks.
+5.1 HierarchicalAction-conditioningMechanism
+Toensurecompatibilitywithdiverseactionpolicymodels,weadoptageneralrepresentationofrobotictrajectories. For
+asinglemanipulator,eachcontrolstepisencodedasa7-dimensionalvector[x,y,z,roll,pitch,yaw,o],where(x,y,z)
+denotestheend-effectorposition,(roll,pitch,yaw)itsorientation(roll,pitch,yaw),andothegripperopenness. Inour
+dual-armsetup,thecontrolsignalperstepisrepresentedbya14-dimensionalvectorformedbyconcatenatingboth
+arms’controlvectors. OveraK-stephorizon,thecompleteactiontrajectoryisdenotedasA ∈ RK×14. Tobridge
+this low-level control signal with the token-based input interface of the GE-Base foundation model, we propose a
+hierarchicalaction-conditioningmechanismthatincorporatesbothspatialandtemporalcomponents.
+15
+
+--- Page 16 ---
+C Simulator
+L +
+PI
+Instruction
+reference image Policy Model
+[( , ),1 … ( , )t] E
+motion condition c n di V
+delta
+C
+n
+oit c A esi o n
+G
+d
+o c
+e
+D o e Generate Act
+pose2image
+p r
+c
+o
+o
+j
+n
+e
+d
+c
+i
+t
+tion
+oiti d n o E
+S
+- r e GE-Sim
+1
+…
+t n usi v m i
+c
+l a Initialization Augment Trajectory
+V o
+1 … t E A + oiti d n V En is v ual
+n Generate video
+corresponding frames Data Engine
+(a) Action-conditioned GE-SimFramework (b) Simulator and Data Engine
+Figure14: OverviewoftheGE-SimWorldSimulator. (a)GE-Baseistransferredintoanaction-conditionedvideo
+generatorforsimulatingroboticbehaviorgivenpredictedactions. Spatialposeconditionsareprojectedintoimage
+spaceandfusedwithhistoricalvisualinputs,whiletemporalmotiondeltasareconcatenatedwithareferenceimage
+topreservestyleconsistencyandinjectedviacross-attentionintothegenerationmodel. (b)GE-Simenablesclosed-
+looppolicyevaluationandcontrollabledatagenerationbyproducingaction-conditionedvideorollouts,supporting
+instruction-followingandconsistenttrajectoryreplayunderdiversevisualcontexts.
+Pose2ImageConditioning.Ateachtimestepi,theposevectora =[x ,y ,z ,r ,p ,y ,o ]encodesthespatialposition,
+i i i i i i i i
+orientation, and gripper state. The position (x ,y ,z ) is projected into pixel coordinates using calibrated camera
+i i i
+intrinsicsandextrinsics. Theorientation(r ,p ,y )isconvertedintoarotationmatrix,whoseorthonormalaxesare
+i i i
+alsoprojectedintotheimageplanetoindicatedirectionality. Thegripperopennesso isrenderedonaunitcircle,with
+i
+shadingintensityreflectingitsstate—lighterforopen,darkerforclosed. Distinctcolorencodingsdifferentiatetheleft
+andrightarms. ThisprocessyieldsposeimagesP thatarespatiallyalignedwiththevisualscene.
+i
+EachP ispairedwithitscorrespondingsampledhistoryframeI . BothareencodedusingasharedvideoencoderE,
+i i
+andtheirlatentfeaturesarefusedbyelement-wiseaddition:
+v =E(I )+E(P ). (1)
+i i i
+Theresultingfusedtokenv capturesbothcontextualvisualsemanticsandexplicitposeinformation,andisinserted
+i
+intothevisualtokenstreamfordownstreamprocessing.
+MotionVectorConditioning. Tocapturetemporaldynamics,wecomputemotiondeltasbetweenconsecutiveend-
+effector poses. Let a = [p ,r ] denote the 6-DoF pose at timestep i, with p ∈ R3 as position and r ∈ R3 as
+i i i i i
+orientation. Thedeltaisgivenby:
+∆a =a −a =[∆p ,∆r ], (2)
+i i i−1 i i
+whichencodesbothpositionalandorientationalchange. Thesedeltasareencodedintomotiontokensviaalearnable
+encoder,concatenatedwiththereferenceimagestyletoken,andinjectedviacross-attentionintoeachDiTblock. This
+temporally-awarerepresentationprovidescoherentmotionpriorstoguideaction-conditionedvideogenerationwithin
+GE-Sim.
+5.2 TrainingProcedure
+Toensurehigh-fidelityvideosimulationrequiredforaction-conditionedgeneration,GE-Simisinitializedfromthe
+high-temporal-resolution pretrained model GE-Base-MR, which offers fine-grained modeling of robotic dynamics.
+ThemodelissubsequentlytrainedonthefullAgiBot-World-Betadataset, usingground-truthactiontrajectoriesas
+conditioninginputsforvideogeneration. Toimprovegeneralizationandrobustness,thetrainingcorpusisaugmented
+with a diverse set of failure cases—including erroneous executions, incomplete behaviors, and suboptimal control
+16
+
+--- Page 17 ---
+Figure15: VisualizationofAction-ConditionedVideoGenerationbyGE-Sim. Givenaground-truthactionpolicy,
+wegeneratethecorrespondingnext-framepredictionusingGE-Sim. Foreachsample,wevisualizethehead-viewimage
+byoverlayingtheprojectedactiontargetontothecurrentframe,alongsidethepredictednextframe,toillustratethe
+model’sspatialalignmentwiththeintendedcontrolsignal.
+trajectories—collectedfrombothhumanteleoperationandreal-worldroboticdeployments. Duringthisphase,theVAE
+andCLIPencodersarekeptfrozentopreservepretrainedsemanticandspatialpriors,whiletheremainingparameters
+areoptimizedviaaflow-matchinglossappliedoverthepredictedvideorepresentations.
+5.3 Action-conditionedVideoGeneration
+Toevaluatetheprecisionofaction-conditionedvideogeneration,wevisualizesimulationoutputsfromGE-Simbasedon
+ground-truthcontrolsequences. AsshowninFigure15,eachexamplepresentsthecurrentobservationframeoverlaid
+withtheprojectedtargetpositionofthenextaction,alongwiththecorrespondingpredictedframesynthesizedbythe
+simulator. Acrosstasksandviewpoints,thegeneratedend-effectormotionconsistentlyalignswiththespatialintentof
+theactioninput,demonstratingthatGE-Simcanaccuratelytranslatelow-levelcontrolcommandsintocoherentvisual
+predictions. Furthermore, wecompareGE-Simbuiltontwobasearchitecturesunderidenticalaction-conditioning
+in Figure 16. The COSMOS2-based variant exhibits higher visual fidelity and stronger temporal consistency than
+the LTX-Video–based model, confirming its superior capability in generating high-quality, action-aligned robotic
+simulations.
+5.4 Closed-LoopSimulation
+Tosupportclosed-loopevaluationofarbitrarypolicymodels,GE-Simfunctionsasavideo-basedworldsimulator. Given
+alanguageinstructionandinitialvisualobservations,thepolicymodelfirsttakestheseasinputandoutputsanaction
+trajectory. GE-Simthenconditionsonboththeinitialobservationsandthepredictedactionpolicytogenerateavideo
+chunksimulatingtheoutcomeoftheaction. Thisgeneratedvideoisfedbackintothepolicymodel,alongwiththe
+originalinstruction,toproducethenextactionstep. Thisiterativeprocesscontinuesuntiltheinstructioniscompleted,
+enablingclosed-loopsimulationandreal-world-alignedevaluationofpolicymodelsinaconsistentandcontrollable
+visualenvironment.
+Beyondpolicyevaluation,GE-Simalsofunctionsasaversatiledataengine. Byexecutingthesameactiontrajectory
+underdifferentinitialvisualenvironments,itcangeneratediversemanipulationsequencesreflectiveofvariedcontexts.
+Thisvideoworldsimulator,groundedinreal-worlddata,offersacompellingalternativetotraditionalphysicssimulators,
+achievinghighvisualfidelitywhilesignificantlyreducingdeploymentcosts. Crucially,itenablesscalable,flexible
+simulationwithoutrequiringmanualenvironmentmodeling. Assuch,GE-Simlaysthefoundationforanewclassof
+general-purpose,realistic,andlow-costworldmodelsthatbridgelearningandevaluationinembodiedintelligence.
+17
+
+--- Page 18 ---
+esaB-oediV-2somsoC
+esaB-oediV-XTL
+Figure16: ComparisonofMulti-ViewAction-ConditionedGenerationResultsbetweenTwoGE-SimVariants.
+VisualizationofGE-Simoutputsbasedondifferentbasemodels: COSMOS2andLTX-Video,underidenticalaction
+conditions.
+6 EWMBench: EmbodiedWorldModelBenchmark
+Aneffectiveevaluationframeworkfunctionsasanavigationalinstrumentforscientificprogress—establishingstandard-
+izedcriteriaandfosteringmeaningfulcomparisonsacrossmethodologies. Inthecontextofroboticworldmodeling,the
+abilitytosystematicallyassesswhetheramodelfaithfullycapturesthestructure,dynamics,andsemanticsofembodied
+environments is essential for advancing the field. To this end, we propose the embodied world model benchmark,
+EWMBench,acomprehensiveevaluationsuitedesignedtomeasurebothrepresentationalfidelityandpracticalutilityof
+video-basedworldmodelsinreal-worldroboticmanipulation.
+Beyondconventionalbenchmarksforgeneralvideogenerationthatfocusonvisualfidelity,languagealignment,or
+humanpreference,roboticmanipulationvideosintroducestricterstructuralconstraints. Inthisdomain,background
+layouts,objectconfigurations,andembodimentstructures(e.g.,robotmorphology)shouldremaininvariant,whileonly
+therobot’sposeandinteractionsevolveinaccordancewiththeinstruction. EWMBenchisdesignedwiththesedomain-
+specificpropertiesinmind,providingtask-orientedmetricsthatassessvisual-sceneconsistency,motioncorrectness,
+andsemanticalignmentanddiversity,enablingmorefaithfulandpracticalevaluationofworldmodelsinmanipulation-
+centric scenarios. To support this, EWMBench comprises a high-quality real-world benchmark dataset and a suite
+of open-source evaluation tools, establishing a standardized framework for rigorously assessing the capabilities of
+video-basedworldmodelsinmanipulation-centrictasks.
+18
+
+--- Page 19 ---
+6.1 BenchmarkDataset
+ThebenchmarkdatasetiscuratedfromtheAgiBot-World-Betatestsetbyselecting10representativetasksspanning
+householdandindustrialdomains. Thesetasksarecharacterizedbywell-definedoperationalgoalsandstrongsequential
+dependencies,requiringproceduralreasoningoveraffordancesandactionordering. Toensureafairevaluation,all
+selectedtasksaredisjointfromthoseusedduringthe1M-scalepre-trainingphase. Eachtaskisdecomposedinto4–10
+atomicsub-actions,witheverysub-actionannotatedwithastep-levelcaption,enablingfine-grainedalignmentbetween
+videosegments,actionlabels,andlinguisticdescriptions. Foreachtask,weuniformlysample100videoinstancesto
+constructabalancedandcomprehensiveevaluationset.
+Topromotediversitywithineachtask,weimplementatrajectoryselectionstrategybasedonspatialvariation.Specifically,
+dual-armend-effectortrajectoriesareextractedandvoxelizedinto3Dgrids. Apairwisesimilaritymatrixiscomputed
+using3DIntersection-over-Union(IoU),andagreedyalgorithmisemployedtoiterativelyselecttheleast-overlapping
+trajectories. Thisapproachensuresbroadcoverageofmotionpatternsandminimizesredundancywithineachtask’s
+evaluationset.
+6.2 EvaluationMetrics
+Weestablishaunifiedevaluationframeworktoassesshowaccuratelyvideo-basedworldmodelscapturethespatial,
+temporal,andsemanticdynamicsofroboticmanipulation.
+Scene Consistency. To evaluate the structural and visual coherence of generated videos, we introduce a scene
+consistencymetricthatassessesthestabilityofvisualappearance,environmentlayout,andviewpointalignmentacross
+time. Specifically,weproposeapatch-levelfeaturesimilaritymetriccomputedoverconsecutiveandinitialframes.
+Wefirstfine-tuneastrongvisualencoder,DINOv2(Oquabetal.,2023),onaroboticmanipulationdatasettoalignits
+representationspacewiththeembodieddomain. Foreachframe,weextractpatch-wiseembeddingsusingthisencoder.
+Then,cosinesimilarityiscomputedacrosscorrespondingpatchesbetweenframestoquantifytemporalconsistency.
+Higher similarity scores reflect greater preservation of scene structure and camera viewpoint throughout the video
+sequence,indicatingstrongerspatial-temporalfidelity.
+ActionTrajectoriesQuality. Toevaluatethequalityofactiontrajectoriesexecutedinresponsetoinstructions,we
+manuallyannotateareferencetrajectoryforeachinstructionastheGT.Foreachgeneratedvideo,atrainedEEFdetector
+is used to localize the gripper across frames and reconstruct the trajectory. Three video samples are generated per
+instruction,andthecorrespondingtrajectoriesareextracted. Spatialalignment(SA)isassessedusingtheSymmetric
+Hausdorff(symH)Distance,whichmeasuresthemaximumpoint-wisedeviationbetweenthegeneratedtrajectoryP and
+thegroundtruthG. Toensurehigherscoresindicatebetteralignment,wereporttheinverseofthisvalue:
+1
+SA = .
+score d (G,P)+ϵ
+symH
+Toaccountforgenerationvariance,thetrajectorywiththelowestsymHisselectedforfurtherevaluation.
+Temporalalignment(TA)isthenevaluatedusingNormalizedDynamicTimeWarping(NDTW)(Ilharcoetal.,2019),
+whichcapturesconsistencyinbothsequenceandtimingbetweenthegeneratedandgroundtruthtrajectories. Toproduce
+apositivelycorrelatedmetric,wereporttheinverseoftheNDTWdistance:
+1
+TA =
+score d (G,P)+ϵ
+NDTW
+Additionally,weintroduceaDynamicConsistency(DYN)metrictoassesstherealismofmotiondynamicsbycomparing
+velocity and acceleration profiles between predicted and ground-truth trajectories. Specifically, we compute the
+WassersteindistanceW(·)betweentherespectivetimeseries,capturingdistributionalalignmentwithoutrequiringstrict
+temporalcorrespondence. Toaccountforvariationsinmotionamplitudeandpreventinstabilityinlow-dynamiccases,
+wenormalizeeachcomponentusingamplitude-awareratios. Thefinalscoreisdefinedas:
+min(∆vgt,∆vpred)+ϵ 1 min(∆agt,∆apred)+ϵ 1
+DYN =α· · +β· ·
+score max(∆vgt,∆vpred)+ϵ W(v) max(∆agt,∆apred)+ϵ W(a)
+where∆v = max(v)−min(v),∆a = max(a)−min(a),ϵ = 10−8,andα = 0.007,β = 0.003. Thisformulation
+ensuresthatthemetricreflectsbothdynamicfidelityandamplituderobustness. Thismulti-levelevaluationprovidesa
+comprehensivemeasureofspatial,temporal,anddynamicfidelity.
+19
+
+--- Page 20 ---
+DYN
+TA SA Model Scene Motion Semantics Score
+GE-Base 0.9427 1.6676 2.0907 4.7010
+Kling 0.8888 0.9440 2.0370 3.8698
+Diversity SceneC Hailuo 0.8577 0.5362 2.0186 3.4125
+COSMOS 0.7963 0.7085 1.7824 3.2872
+OpenSora 0.9210 0.3442 1.8739 3.1392
+BLEU Logic LTX 0.9156 0.4002 1.6518 2.9676
+CLIP
+(a) Fine-Grained Evaluation of Video Generation Models (b) Aggregated Evaluation Across Hierarchical Levels
+Figure17: ComprehensiveEvaluationofVideoWorldModelsforRoboticManipulation. LeveragingourEWM-
+Bench,wesystematicallyevaluateasuiteofvideoworldmodelssourcedfromstate-of-the-artgeneralvideogeneration
+andembodiedworldmodelingapproaches. Allmodelsareassessedunderaunifiedtext-and-imagetovideogeneration
+paradigm. Evaluationspansmultiplelevels,scene,motionandsemantics,capturingvisualfidelity,temporalcoherence,
+andsemanticgroundingindiversereal-worldroboticmanipulationtasks.
+MotionSemanticsMetrics. Weevaluatemotionsemanticsfromtwoperspectives: semanticconsistencyandbehavioral
+diversity. Semanticconsistencyassesseswhetherthegeneratedmanipulationbehavioralignswiththeintendedtask
+instruction,whilediversitymeasuresthemodel’sabilitytoproducevariedyetvalidtrajectories.Forsemanticconsistency,
+weadoptamulti-granularityevaluationframeworkbasedontheVLM,Qwen2.5-VL-7B-Instruct(Baietal.,2025):
+• Global-level alignment: A VLM generates a compact summary caption for each generated video, which is then
+comparedtotheoriginaltask-goalinstructionusingBLEUscorestoassessoverallalignmentbetweenthevideoand
+intendedtasksemantics.
+• Key-stepconsistency: Toassesswhetheressentialsub-tasksarecorrectlyexecuted,theVLMgeneratesstep-by-step
+descriptionsforboththegeneratedandground-truthmanipulationvideos. Consistencyismeasuredbycomputing
+CLIP-basedsimilaritybetweenthecorrespondingstepsinthetwodescriptions.
+• Logicalcorrectness: Toidentifyviolationsofphysicalorcommonsenseconstraints,wefirstpromptGPTtodefinea
+taxonomyoftypicallogicalerrorsinroboticmanipulationvideos,suchashallucinatedactions,objectdisappearances,
+orphysicallyimplausiblemotions. Then,avideo-basedVLMisusedtodetectthepresenceofthesepredefinederror
+typesingeneratedvideos. Detectedviolationsareexplicitlypenalized,encouragingthemodeltoproducesemantically
+accurateandphysicallycoherentmanipulationbehaviors.
+Toassessthemodel’scapacityforgeneratingvariedoutputs,wemeasuresemanticdiversityusingCLIP-basedglobal
+videoembeddings. Specifically,wecomputepairwiseCLIPsimilaritiesbetweengeneratedvideosconditionedonthe
+sameinstruction,anddefinethediversityscoreas1-CLIPsimilarity. Higherscoresindicategreatersemanticvariability,
+reflectingthemodel’sabilitytogeneralizebeyonddeterministicexecution.
+6.3 WorldModelEvaluation
+Tothoroughlyevaluatetheeffectivenessofvideo-basedworldmodelsforroboticmanipulation,weestablishacom-
+prehensive evaluation framework, referred to as the "evaluation colosseum," enabling direct, comparative analysis
+acrossvariousmodelarchitectures. Inthisframework,webenchmarksevenstate-of-the-artvideogenerationmodels,
+includingOpen-Sora(Zhengetal.,2024),Kling(Kuaishou,2025),Hailuo(MiniMax,2024),LTX-Video(HaCohen
+etal.,2024)andthescene-centricCOSMOS(Agarwaletal.,2025). Allmodelsareevaluatedunderastandardized
+text-and-image-to-videogenerationparadigm,wherenaturallanguageinstructionsandhead-viewvisualobservations
+conditionvideosynthesis. Notably,theGE-BasemodelisbuiltontheLTX-Videoarchitecture,whichenablesittofocus
+ondomain-specifictasksandleveragefine-tunedcontrol.
+AsshowninFigure17,GE-Baseconsistentlyoutperformsthebaselinesacrossmultipleevaluationdimensions,with
+notablestrengthsintemporalalignmentanddynamicconsistency,twocoremetricsforgeneratingaction-plausibleand
+temporallystableroboticbehaviors. Whileperformanceinmotionsemanticsiscomparabletogenericvideogeneration
+20
+
+--- Page 21 ---
+models,GE-Basedemonstratesmuchstrongercontrol-awaregenerationfidelity,offeringmorepreciseandreliabletask
+execution. ThisadvantageisattributedtoGE-Base’spretrainingonlarge-scaleroboticmanipulationdata,whichbetter
+equipsittocapturetask-relevantspatial-temporaldynamics.
+Incomparison,Kling(Kuaishou,2025)achievesstrongoverallperformance,particularlyinrobustnessacrossgeneral
+video generation tasks, but lacks the specialized understanding required for fine-grained control, which limits its
+performanceonmorecomplexroboticmanipulationtasks. Hailuo(MiniMax,2024),thoughproficientinzero-shot
+embodiedscenarios,oftengeneratescartoon-likeoutputsthatcompromisevisualrealism,limitingitsapplicabilityfor
+real-worldroboticmanipulation. COSMOS(Agarwaletal.,2025)andLTX-Video(HaCohenetal.,2024)models,while
+effectiveinhumanhand-centrictasks,strugglewithadaptingtheirsemanticunderstandingtoroboticcontexts,and
+oftenproduceinconsistenttaskexecution. Notably,LTX-Videoexperiencesabruptscenetransitionsandatendencyto
+generatestationarystatesduringactionsequences,whileCOSMOSstruggleswithmaintainingconsistentviewpoints
+andcameracontrol. Lastly,OpenSora(Zhengetal.,2024)displayspartialunderstandingoftaskscenesandaction
+semantics,butfrequentlysuffersfromjitteryroboticarmmovementsandgeneratesstaticvideos,particularlyinmore
+complextasks.
+TheseresultshighlightGE-Base’sadvantagesinbridginghigh-levelsemanticunderstandingwithlow-levelcontrol
+execution. Itssuperiorperformanceintemporalalignment,dynamicconsistency,andtaskadaptationpositionsGE-Base
+asaleadingmodelforreal-worldroboticmanipulation.
+6.4 SimulationEvaluation
+In addition to instruction-conditioned evaluation, we further assess the fidelity and reliability of our video-based
+simulatorinanaction-conditionedsettingacrosstwobasemodels. Givenground-truthactiontrajectories,thesimulator
+generatesvisualpredictionsconditionedsolelyonthesecontrolsequences. UndertheEWMBenchframework(Table2),
+GE-Simconsistentlydemonstrateshighspatialaccuracy,precisetrajectoryexecution,andstrongsemanticcoherence.
+Thelimitedvisualdiversityunderfixedactioninputsindicatesaccurateaction-to-videocorrespondenceandrobust
+alignmentwithcontroldynamics. WhileGE-SimbuiltonCOSMOS2andLTX-Videoachievescomparableoverall
+performance,theCOSMOS2-basedvariantexcelsindynamicconsistency,reflectingsuperiorembodiedvideogeneration
+fidelityandtemporalcoherence.
+GE-Base Kling Hailuo OpenSora
+Model BLEU CLIP DYN Div. PSNR
+LTX 0.33 90.8 0.78 0.011 19.9
+COSMOS 0.31 90.2 0.85 0.010 20.7
+Model SA Log. TA Scn.
+LTX 0.94 0.97 0.98 0.90
+COSMOS 0.87 0.97 0.97 0.91
+Human Rank VBenchRank EWMBenchRank
+Table2: GE-SimEvaluationonEWMBench.
+Figure18: ConsistencyandValidityAnalysisofEvaluationMet- ComparisonofLTX-VideoandCOSMOS2as
+rics.WecomparehumanpreferencewithourproposedEWMBench basemodelsforaction-conditionedvideogen-
+andthegeneralvideobenchmarkVBenchtoassesstheconsistency eration. Metricsevaluatespatial,temporal,and
+and reliability of automated evaluation metrics across different semantic alignment with ground-truth control
+videoworldmodels. trajectories.
+Theseresultshighlightthat,beyonditsefficiency,lowcost,andabilitytogeneralizeacrossdiverseenvironments,our
+video-basedsimulatorprovidesareliableandsemanticallyconsistentplatformforaction-conditionedevaluationin
+roboticmanipulation.
+6.5 Metric-HumanConsistency
+TovalidatethereliabilityandtaskrelevanceofourproposedEWMBench,weconductacomparativeanalysisagainst
+humanpreferenceratingsandthegeneralvideobenchmarkVBench. Wecollecthumanannotationsonvideosgenerated
+by four representative models, GE-Base, Kling-1.6 (Kuaishou, 2025), Hailuo I2V-01-live (MiniMax, 2024), and
+OpenSora-2.0(Zhengetal.,2024),usingarankingprotocolwhereannotatorsassignordinalscoresbasedonperceived
+21
+
+--- Page 22 ---
+overallquality.Rankingsareaggregatedacrossannotatorsandsamples,withmultiplereviewroundstoensureannotation
+consistency. AsshowninFigure18,empiricalresultsdemonstratethatEWMBenchrankingsexhibitstrongconcordance
+withhumanjudgments,effectivelycapturingdimensionsoftemporalalignment,semanticfidelity,andvisualcoherence.
+In contrast, VBench exhibits misalignment, particularly in scenarios demanding embodied consistency and goal-
+conditionedreasoning. TheseresultsconfirmthatEWMBenchprovidesamorefaithfulandtask-groundedassessment
+ofvideo-basedworldmodelsinroboticmanipulation.
+7 RelatedWorks
+WorldModelsforRoboticManipulation. Theconceptofworldmodelsasinternalpredictiverepresentationsfor
+perception,planning,andcontrolhaslongplayedacentralroleinrobotics(ChatilaandLaumond,1985;Suttonand
+Barto,1981). Earlyapproachesreliedonanalyticalmodelingandsystemidentification(Murrayetal.,2017),requiring
+task-specificengineeringandlimitedgeneralizability. Theintroductionofneuralworldmodels(HaandSchmidhuber,
+2018)enabledlearningcompactrepresentationsofdynamicsdirectlyfromsensoryinputs. Thesemodelshavesince
+evolvedtooperateinbothpixelspace(Ebertetal.,2018;Finnetal.,2016)andlearnedlatentspaces(Hafneretal.,
+2019;Huetal.,2024;Wuetal.,2023),withapplicationsincontrolandplanning. However,mostprioreffortsremain
+task-specific, constrained by limited interaction data. Recent advances propose general video-based world models
+trainedonlarge-scaledatasets(Agarwaletal.,2025;Bruceetal.,2024;Jangetal.,2025;Russelletal.,2025),yet
+theseprimarilyfocusonvisualsynthesisanddonotsupportclosed-looproboticcontrol. Incontrast,ourworkdevelops
+a unified framework that integrates video-based world modeling with an action decoding module (GE-Act) and a
+closed-loopsimulator(GE-Sim),enablingdirectapplicationinreal-worldroboticmanipulation.
+VideoGenerativeModelsforRobotLearning. Progressinvideogenerationhasledtopowerfulmodelscapable
+of synthesizing high-quality videos from text or image prompts (Blattmann et al., 2023; Ho et al., 2022; OpenAI,
+2024). Whilethesemodelsachieveimpressivevisualquality(Blattmannetal.,2023;OpenAI,2024;Yangetal.,2024),
+theirapplicationtoroboticsremainslimitedbythelackofactionconditioning,temporalcoherence,andmulti-view
+reasoning. Robotic manipulation requires models that can predict future states conditioned on action instruction,
+maintainlong-termtemporalconsistency,andreasonoverspatiallydistributedobservations. Action-conditionedvideo
+models(Bruceetal.,2024)haveshowninitialpromise,andincreasinglysophisticatedsystemsarebeingdeveloped,
+includingdriving(Russelletal.,2025)androboticmodels(Agarwaletal.,2025),withcameracontrollability(Wangetal.,
+2024)furtherenhancingmanipulationcapabilities. However,existingmethodsarelimitedtosingle-viewpredictions
+andoftenlackcomprehensivetaskunderstanding. GE-Baseaddressestheselimitationsthroughmulti-viewsynthesis
+andautoregressivedecodingwithamemorymechanism,improvingspatiotemporalconsistencyandtaskrelevance.
+Vision-Language-ActionModels. Vision-language-action(VLA)modelshaveemergedasadominantparadigmin
+instruction-conditionedrobotics(Blacketal.,2024;Brohanetal.,2023;Driessetal.,2023;Kimetal.,2024). These
+modelstypicallyinitializefromlarge-scalevision-languagepretrainingandarefine-tunedonrobotdemonstrations
+topredictactionsequences. Althoughthisapproachhasshownstrongperformanceindiversetasks,itsuffersfrom
+inherentlimitations. Behaviorcloningrestrictstheagenttoimitationwithouttheabilitytorecoverfromerrorsorexplore
+alternativestrategies. Theabsenceofexplicitworldmodelspreventsinternalsimulationorreasoningoverpotential
+outcomes. Moreover,collectinghigh-qualityteleoperationdataremainsamajorbottleneck. Alternativeapproaches
+attempt to use VLMs as frozen encoders (Nair et al., 2022) or high-level planners (Ahn et al., 2022; Huang et al.,
+2023). Ourframeworktakesadifferentapproachbyusingvision-languageinputstoconditionagenerativeworldmodel,
+enablingpredictivereasoningandplanningthroughinternalsimulation.
+PolicyEvaluationinRobotics. Efficientpolicyevaluationisessentialforscalingrobotlearning. Traditionalphysics
+enginessuchasMuJoCo(Todorovetal.,2012)andIsaacGym(Makoviychuketal.,2021)providefastsimulation
+butrequireextensivemanualtuningandstillfaceagapwhentransferringtotherealworld. Real-worldevaluations,
+while more accurate, are slow and resource-intensive (Zhou et al., 2025). Recent efforts incorporate generative
+models into simulators (Authors, 2024; Nasiriany et al., 2024), offering new possibilities for efficient and scalable
+evaluation. However,manyoftheseapproachesarelimitedtosimplifiedsettingsorrestrictedobservationmodalities.
+GE-Simaddressesthesechallengesbyembeddingroboticmodelswithinagenerativeloopthatsupportslong-horizon
+manipulationacrossmultipleviewsandincludesbothsuccessfulandfailure-modetrajectoriestoimproverobustness
+andreliability.
+22
+
+--- Page 23 ---
+Evaluation of Embodied World Models. Assessing the quality of embodied world models requires metrics that
+reflectperformanceinrealisticmanipulationscenarios. TraditionalvideogenerationmetricssuchasMSEorFVDdo
+notcorrelatewellwithreal-worldtasksuccess. Recentbenchmarksintroducestructuredevaluationprotocols(Huang
+etal.,2024a,b)withbroadermetriccoverage,butmanystillemphasizevisualrealismovertaskrelevance. Specialized
+frameworks such as PhyGenBench (Meng et al., 2024) and T2V-CompBench (Sun et al., 2024) assess physical
+understandingandcompositionality,respectively,butlackalignmentwithcontrolobjectives. OurEWMBenchaddresses
+this gap by providing a comprehensive evaluation suite focused on visual fidelity, motion consistency, semantic
+alignment,andaction-conditionedcontrollability(Yueetal.,2025). Itisspecificallydesignedtoassessthecapabilities
+ofvideo-basedworldmodelsinthecontextofembodiedrobotics.
+8 Limitations
+Inthiswork,wepresentasystematicinvestigationintoworldmodelsforreal-worldroboticmanipulation,addressing
+corechallengesinvisuomotorrepresentation,policylearning,andembodiedevaluation. WhileourGenieEnvisioner
+frameworklaysafoundationalpathtowardscalableandgeneralizableroboticintelligence,severallimitationsremain:
+• DataCoverageandSourceDiversity.Althoughweconductcross-embodimenttransferexperiments,ourtraining
+relies exclusively on the AgiBot-World-Beta dataset—a large-scale yet single-platform real-world corpus.
+No internet-scale or simulation-based data sources are incorporated, limiting the diversity of embodiment
+types,sensormodalities,andsceneconfigurationsencounteredduringpretraining. WhileGenieEnvisioner
+demonstratespromisinggeneralizationviafew-shotadaptation,itsrobustnessacrossheterogeneoussources
+andlow-resourcedomainsremainsunderexplored. Futureextensionsincorporatinglarge-scalesimulatedor
+web-deriveddemonstrationswillbecriticalforfurtherexpandingtransfercapabilities.
+• EmbodimentScopeandDexterity. Thecurrentstudyisconfinedtoupper-bodytabletopmanipulationusing
+parallel-jawgrippers. Morecomplexembodimentsettings,includingdexteroushandcoordinationandfull-
+bodylocomotion,arenotaddressed. Thesecapabilitiesarecrucialforreal-worldgeneral-purposerobotics
+andwarrantfurtherintegrationintotheGenieEnvisionerframeworktosupportfine-grained,multi-contact
+interactionsandwhole-bodybehaviors.
+• EvaluationMethodology. WhileourEWMBenchprovidesastructuredevaluationofvisualfidelity,action
+consistency, and language grounding, it still relies on proxy metrics and partial human validation. Fully
+automatedandreliableassessmentoftasksuccess—particularlyunderdiversefailuremodesandambiguous
+semantics—remainsanopenchallenge. Buildingscalableevaluationprotocolsthataligncloselywithhuman
+judgmentwillbeessentialforrobustbenchmarkingandsafedeploymentinreal-worldscenarios.
+WhileGenieEnvisionerisnotyetacompletesolution,itrepresentsameaningfulsteptowardGenie,embodiedAI
+systemswiththepotentialforAGI-levelmanipulationcapabilities.
+9 Conclusion
+In this work, we introduce Genie Envisioner, a unified and scalable platform for dual-arm robotic manipulation,
+leveraginghigh-fidelityvideogeneration.Atitscore,GE-Baseprovidesarobustfoundation,capturingthespatiotemporal
+andsemanticdynamicsofroboticinteractionsforinstruction-alignedvideosynthesis. TheintegrationofGE-Actenables
+high-precision task execution, demonstrating not only strong performance across diverse in-domain tasks but also
+exceptionalcross-embodimentgeneralization. Throughminimaladaptation,GE-Actsuccessfullytransferstonovel
+roboticplatformsandexcelsincomplextaskssuchasclothfoldingandboxpacking. GE-Simenhancestheframework
+further by supporting closed-loop simulation, allowing for continuous policy refinement. EWMBench provides a
+comprehensive evaluation suite, ensuring robust assessment across visual realism, semantic alignment, and policy
+consistency. Extensivereal-worldevaluationsconfirmthesuperiorityofGE-Base,GE-Act,andGE-Sim,establishing
+GenieEnvisionerasapowerfulfoundationforbuildinggeneral-purpose,instruction-drivenembodiedintelligence.
+Acknowledgment
+Wegratefullyacknowledgethefoundationalcontributionsofpriorworks,includingEnerVerse(Huangetal.,2025),
+EnerVerse-AC(Jiangetal.,2025),andEWMBENCH(Yueetal.,2025),whichprovidedtheinspirationandfoundation
+23
+
+--- Page 24 ---
+forthisresearch. WeappreciatetheAgiBotGenieTeamfortheirinvaluablecontributionstodatacollection,real-world
+evaluation,andtheprovisionofbothrobotichardwareandsoftwaresupportthroughoutthisproject.
+References
+A.Abouelenin,A.Ashfaq,A.Atkinson,H.Awadalla,N.Bach,J.Bao,A.Benhaim,M.Cai,V.Chaudhary,C.Chen,etal. Phi-4-mini
+technicalreport:Compactyetpowerfulmultimodallanguagemodelsviamixture-of-loras. arXivpreprintarXiv:2503.01743,2025.
+N.Agarwal,A.Ali,M.Bala,Y.Balaji,E.Barker,T.Cai,P.Chattopadhyay,Y.Chen,Y.Cui,Y.Ding,D.Dworakowski,J.Fan,
+M.Fenzi,F.Ferroni,S.Fidler,D.Fox,S.Ge,Y.Ge,J.Gu,S.Gururani,E.He,J.Huang,J.Huffman,P.Jannaty,J.Jin,S.W.Kim,
+G.Klár,G.Lam,S.Lan,L.Leal-Taixe,A.Li,Z.Li,C.-H.Lin,T.-Y.Lin,H.Ling,M.-Y.Liu,X.Liu,A.Luo,Q.Ma,H.Mao,
+K.Mo,A.Mousavian,S.Nah,S.Niverty,D.Page,D.Paschalidou,Z.Patel,L.Pavao,M.Ramezanali,F.Reda,X.Ren,V.R.N.
+Sabavat,E.Schmerling,S.Shi,B.Stefaniak,S.Tang,L.Tchapmi,P.Tredak,W.-C.Tseng,J.Varghese,H.Wang,H.Wang,
+H.Wang,T.-C.Wang,F.Wei,X.Wei,J.Z.Wu,J.Xu,W.Yang,L.Yen-Chen,X.Zeng,Y.Zeng,J.Zhang,Q.Zhang,Y.Zhang,
+Q.Zhao,andA.Zolkowski. CosmosworldfoundationmodelplatformforphysicalAI. arXivpreprintarXiv:2501.03575,2025.
+M.Ahn,A.Brohan,N.Brown,Y.Chebotar,O.Cortes,B.David,C.Finn,C.Fu,K.Gopalakrishnan,K.Hausman,etal. Doasican,
+notasisay:Groundinglanguageinroboticaffordances. arXivpreprintarXiv:2204.01691,2022.
+G.Authors. Genesis:Auniversalandgenerativephysicsengineforroboticsandbeyond,December2024. URLhttps://github
+.com/Genesis-Embodied-AI/Genesis.
+S.Bai,K.Chen,X.Liu,J.Wang,W.Ge,S.Song,K.Dang,P.Wang,S.Wang,J.Tang,etal. Qwen2.5-vltechnicalreport. arXiv
+preprintarXiv:2502.13923,2025.
+D. Berenson, S. S. Srinivasa, D. Ferguson, and J. J. Kuffner. Manipulation planning on constraint manifolds. In 2009 IEEE
+internationalconferenceonroboticsandautomation,pages625–632.IEEE,2009.
+J.Bjorck,F.Castañeda,N.Cherniadev,X.Da,R.Ding,L.Fan,Y.Fang,D.Fox,F.Hu,S.Huang,etal.Gr00tn1:Anopenfoundation
+modelforgeneralisthumanoidrobots. arXivpreprintarXiv:2503.14734,2025.
+K.Black,N.Brown,D.Driess,A.Esmail,M.Equi,C.Finn,N.Fusai,L.Groom,K.Hausman,B.Ichter,etal. Avision-language-
+actionflowmodelforgeneralrobotcontrol. arXivpreprintarXiv:2410.24164,2024.
+A.Blattmann,T.Dockhorn,S.Kulal,D.Mendelevitch,M.Kilian,D.Lorenz,Y.Levi,Z.English,V.Voleti,A.Letts,etal. Stable
+videodiffusion:Scalinglatentvideodiffusionmodelstolargedatasets. arXivpreprintarXiv:2311.15127,2023.
+A.Brohan,N.Brown,J.Carbajal,Y.Chebotar,X.Chen,K.Choromanski,T.Ding,D.Driess,A.Dubey,C.Finn,P.Florence,C.Fu,
+M.G.Arenas,K.Gopalakrishnan,K.Han,K.Hausman,A.Herzog,J.Hsu,B.Ichter,A.Irpan,N.Joshi,R.Julian,D.Kalashnikov,
+Y.Kuang,I.Leal,L.Lee,T.-W.E.Lee,S.Levine,Y.Lu,H.Michalewski,I.Mordatch,K.Pertsch,K.Rao,K.Reymann,M.Ryoo,
+G.Salazar,P.Sanketi,P.Sermanet,J.Singh,A.Singh,R.Soricut,H.Tran,V.Vanhoucke,Q.Vuong,A.Wahid,S.Welker,
+P.Wohlhart,J.Wu,F.Xia,T.Xiao,P.Xu,S.Xu,T.Yu,andB.Zitkovich. Rt-2: Vision-language-actionmodelstransferweb
+knowledgetoroboticcontrol. arXivpreprintarXiv:2307.15818,2023.
+J.Bruce,M.Dennis,A.Edwards,J.Parker-Holder,Y.Shi,E.Hughes,M.Lai,A.Mavalankar,R.Steigerwald,C.Apps,Y.Aytar,
+S.Bechtle,F.Behbahani,S.Chan,N.Heess,L.Gonzalez,S.Osindero,S.Ozair,S.Reed,J.Zhang,K.Zolna,J.Clune,N.d.
+Freitas,S.Singh,andT.Rocktäschel. Genie: Generativeinteractiveenvironments. InInternationalConferenceonMachine
+Learning,2024.
+Q.Bu,J.Cai,L.Chen,X.Cui,Y.Ding,S.Feng,S.Gao,X.He,X.Huang,S.Jiang,etal. Agibotworldcolosseo: Alarge-scale
+manipulationplatformforscalableandintelligentembodiedsystems. arXivpreprintarXiv:2503.06669,2025a.
+Q.Bu,Y.Yang,J.Cai,S.Gao,G.Ren,M.Yao,P.Luo,andH.Li. Univla:Learningtoactanywherewithtask-centriclatentactions.
+arXivpreprintarXiv:2505.06111,2025b.
+R.ChatilaandJ.-P.Laumond. Positionreferencingandconsistentworldmodelingformobilerobots. InProceedingsoftheIEEE
+InternationalConferenceonRoboticsandAutomation,volume2,pages138–145,1985.
+T.Chen,Z.Chen,B.Chen,Z.Cai,Y.Liu,Q.Liang,Z.Li,X.Lin,Y.Ge,Z.Gu,etal. Robotwin2.0:Ascalabledatageneratorand
+benchmarkwithstrongdomainrandomizationforrobustbimanualroboticmanipulation. arXivpreprintarXiv:2506.18088,2025.
+Z.Chen,J.Wu,W.Wang,W.Su,G.Chen,S.Xing,M.Zhong,Q.Zhang,X.Zhu,L.Lu,etal. Internvl:Scalingupvisionfoundation
+modelsandaligningforgenericvisual-linguistictasks. InProceedingsoftheIEEE/CVFconferenceoncomputervisionand
+patternrecognition,pages24185–24198,2024.
+D. Driess, F. Xia, M. S. M. Sajjadi, C. Lynch, A. Chowdhery, B. Ichter, A. Wahid, J. Tompson, Q. Vuong, T. Yu, W. Huang,
+Y.Chebotar,P.Sermanet,D.Duckworth,S.Levine,V.Vanhoucke,K.Hausman,M.Toussaint,K.Greff,A.Zeng,I.Mordatch,and
+P.Florence. PaLM-E:Anembodiedmultimodallanguagemodel. arXivpreprintarXiv:2023.03378,2023.
+24
+
+--- Page 25 ---
+F.Ebert,C.Finn,S.Dasari,A.Xie,A.Lee,andS.Levine.Visualforesight:Model-baseddeepreinforcementlearningforvision-based
+roboticcontrol. arXivpreprintarXiv:1812.00568,2018.
+C.Finn,I.Goodfellow,andS.Levine. Unsupervisedlearningforphysicalinteractionthroughvideoprediction. InNeurIPS,2016.
+Z.Fu,T.Z.Zhao,andC.Finn. Mobilealoha:Learningbimanualmobilemanipulationwithlow-costwhole-bodyteleoperation. In
+ConferenceonRobotLearning(CoRL),2024.
+D.HaandJ.Schmidhuber. Worldmodels. arXivpreprintarXiv:1803.10122,2018.
+Y.HaCohen,N.Chiprut,B.Brazowski,D.Shalem,D.Moshe,E.Richardson,E.Levin,G.Shiran,N.Zabari,O.Gordon,P.Panet,
+S.Weissbuch,V.Kulikov,Y.Bitterman,Z.Melumian,andO.Bibi. Ltx-video:Realtimevideolatentdiffusion. arXivpreprint
+arXiv:2501.00103,2024.
+D.Hafner,T.Lillicrap,I.Fischer,R.Villegas,D.Ha,H.Lee,andJ.Davidson. Learninglatentdynamicsforplanningfrompixels. In
+Internationalconferenceonmachinelearning,pages2555–2565.PMLR,2019.
+J.Ho,T.Salimans,A.Gritsenko,W.Chan,M.Norouzi,andD.J.Fleet. Videodiffusionmodels. InNeurIPS,2022.
+E.S.Hu,K.Ahn,Q.Liu,H.Xu,M.Tomar,A.Langford,D.Jayaraman,A.Lamb,andJ.Langford. Learningtoachievegoalswith
+beliefstatetransformers. arXivpreprintarXiv:2410.23506,2024.
+S.Huang,Z.Jiang,H.Dong,Y.Qiao,P.Gao,andH.Li. Instruct2act:Mappingmulti-modalityinstructionstoroboticactionswith
+largelanguagemodel. arXivpreprintarXiv:2305.11176,2023.
+S.Huang,L.Chen,P.Zhou,S.Chen,Z.Jiang,Y.Hu,Y.Liao,P.Gao,H.Li,M.Yao,etal. Enerverse:Envisioningembodiedfuture
+spaceforroboticsmanipulation. arXivpreprintarXiv:2501.01895,2025.
+Z.Huang,Y.He,J.Yu,F.Zhang,C.Si,Y.Jiang,Y.Zhang,T.Wu,Q.Jin,N.Chanpaisit,etal. Vbench:Comprehensivebenchmark
+suiteforvideogenerativemodels. InProceedingsoftheIEEE/CVFConferenceonComputerVisionandPatternRecognition,
+2024a.
+Z.Huang,F.Zhang,X.Xu,Y.He,J.Yu,Z.Dong,Q.Ma,N.Chanpaisit,C.Si,Y.Jiang,etal. Vbench++: Comprehensiveand
+versatilebenchmarksuiteforvideogenerativemodels. arXivpreprintarXiv:2411.13503,2024b.
+G.Ilharco,V.Jain,A.Ku,E.Ie,andJ.Baldridge. Generalevaluationforinstructionconditionednavigationusingdynamictime
+warping. arXivpreprintarXiv:1907.05446,2019.
+J.Jang,S.Ye,Z.Lin,J.Xiang,J.Bjorck,Y.Fang,F.Hu,S.Huang,K.Kundalia,Y.-C.Lin,etal.Dreamgen:Unlockinggeneralization
+inrobotlearningthroughvideoworldmodels. arXivpreprintarXiv:2505.12705,2025.
+M.Janner,J.Fu,M.Zhang,andS.Levine. Whentotrustyourmodel: Model-basedpolicyoptimization. Advancesinneural
+informationprocessingsystems,32,2019.
+Y.Jiang,S.Chen,S.Huang,L.Chen,P.Zhou,Y.Liao,X.He,C.Liu,H.Li,M.Yao,etal. Enerverse-ac:Envisioningembodied
+environmentswithactioncondition. arXivpreprintarXiv:2505.09723,2025.
+M.J.Kim,K.Pertsch,S.Karamcheti,T.Xiao,A.Balakrishna,S.Nair,R.Rafailov,E.Foster,G.Lam,P.Sanketi,etal. Openvla:An
+open-sourcevision-language-actionmodel. arXivpreprintarXiv:2406.09246,2024.
+Kuaishou. Kling. https://app.klingai.com/cn/,2025.
+B.Liu,Y.Zhu,C.Gao,Y.Feng,Q.Liu,Y.Zhu,andP.Stone. Libero:Benchmarkingknowledgetransferforlifelongrobotlearning.
+AdvancesinNeuralInformationProcessingSystems,36:44776–44791,2023.
+V.Makoviychuk,L.Wawrzyniak,Y.Guo,M.Lu,K.Storey,M.Macklin,D.Hoeller,N.Rudin,A.Allshire,A.Handa,etal. Isaac
+gym:Highperformancegpu-basedphysicssimulationforrobotlearning. arXivpreprintarXiv:2108.10470,2021.
+M.T.Mason. Mechanicsofroboticmanipulation. MITPress,Cambridge,MA,USA,2001. ISBN0262133962.
+F.Meng,J.Liao,X.Tan,W.Shao,Q.Lu,K.Zhang,Y.Cheng,D.Li,Y.Qiao,andP.Luo. Towardsworldsimulator: Crafting
+physicalcommonsense-basedbenchmarkforvideogeneration. arXivpreprintarXiv:2410.05363,2024.
+MiniMax. HailuoAI. https://hailuoai.video,2024.
+R.M.Murray,Z.Li,andS.S.Sastry. Amathematicalintroductiontoroboticmanipulation. CRCpress,2017.
+A.Nagabandi,K.Konolige,S.Levine,andV.Kumar. Deepdynamicsmodelsforlearningdexterousmanipulation. InConferenceon
+robotlearning,pages1101–1112.PMLR,2020.
+25
+
+--- Page 26 ---
+S.Nair,A.Rajeswaran,V.Kumar,C.Finn,andA.Gupta. R3m: Auniversalvisualrepresentationforrobotmanipulation. In
+ConferenceonRobotLearning(CoRL),2022.
+S.Nasiriany,A.Maddukuri,L.Zhang,A.Parikh,A.Lo,A.Joshi,A.Mandlekar,andY.Zhu. Robocasa:Large-scalesimulationof
+everydaytasksforgeneralistrobots. arXivpreprintarXiv:2406.02523,2024.
+OpenAI. Sora,2024. URLhttps://openai.com/sora/.
+M.Oquab,T.Darcet,T.Moutakanni,H.Vo,M.Szafraniec,V.Khalidov,P.Fernandez,D.Haziza,F.Massa,A.El-Nouby,etal.
+Dinov2:Learningrobustvisualfeatureswithoutsupervision. arXivpreprintarXiv:2304.07193,2023.
+A.Radford,J.W.Kim,C.Hallacy,A.Ramesh,G.Goh,S.Agarwal,G.Sastry,A.Askell,P.Mishkin,J.Clark,etal. Learning
+transferablevisualmodelsfromnaturallanguagesupervision. InInternationalconferenceonmachinelearning,pages8748–8763.
+PmLR,2021.
+C.Raffel,N.Shazeer,A.Roberts,K.Lee,S.Narang,M.Matena,Y.Zhou,W.Li,andP.J.Liu. Exploringthelimitsoftransfer
+learningwithaunifiedtext-to-texttransformer. Journalofmachinelearningresearch,21(140):1–67,2020.
+L.Russell,A.Hu,L.Bertoni,G.Fedoseev,J.Shotton,E.Arani,andG.Corrado. Gaia-2:Acontrollablemulti-viewgenerativeworld
+modelforautonomousdriving. arXivpreprintarXiv:2503.20523,2025.
+M.Stilman. Taskconstrainedmotionplanninginrobotjointspace. In2007IEEE/RSJInternationalConferenceonIntelligentRobots
+andSystems,pages3074–3081.IEEE,2007.
+K.Sun,K.Huang,X.Liu,Y.Wu,Z.Xu,Z.Li,andX.Liu. T2v-compbench: Acomprehensivebenchmarkforcompositional
+text-to-videogeneration. arXivpreprintarXiv:2407.14505,2024.
+R.S.SuttonandA.G.Barto. Anadaptivenetworkthatconstructsandusesandinternalmodelofitsworld. CognitionandBrain
+Theory,4(3):217–246,1981.
+E.Todorov,T.Erez,andY.Tassa. Mujoco:Aphysicsengineformodel-basedcontrol. In2012IEEE/RSJinternationalconferenceon
+intelligentrobotsandsystems,pages5026–5033.IEEE,2012.
+Z.Wang,Z.Yuan,X.Wang,Y.Li,T.Chen,M.Xia,P.Luo,andY.Shan. Motionctrl:Aunifiedandflexiblemotioncontrollerfor
+videogeneration. InACMSIGGRAPH,2024.
+P.Wu,A.Escontrela,D.Hafner,P.Abbeel,andK.Goldberg. Daydreamer:Worldmodelsforphysicalrobotlearning. InConference
+onrobotlearning,pages2226–2240.PMLR,2023.
+Z.Yang,J.Teng,W.Zheng,M.Ding,S.Huang,J.Xu,Y.Yang,W.Hong,X.Zhang,G.Feng,etal. Cogvideox: Text-to-video
+diffusionmodelswithanexperttransformer. arXivpreprintarXiv:2408.06072,2024.
+H.Yue,S.Huang,Y.Liao,S.Chen,P.Zhou,L.Chen,M.Yao,andG.Ren. Ewmbench:Evaluatingscene,motion,andsemantic
+qualityinembodiedworldmodels. arXivpreprintarXiv:2505.09694,2025.
+Z.Zheng,X.Peng,T.Yang,C.Shen,S.Li,H.Liu,Y.Zhou,T.Li,andY.You. Open-sora:Democratizingefficientvideoproduction
+forall,March2024. URLhttps://github.com/hpcaitech/Open-Sora.
+Z.Zhou,P.Atreya,Y.L.Tan,K.Pertsch,andS.Levine. Autoeval:Autonomousevaluationofgeneralistrobotmanipulationpolicies
+intherealworld. arXivpreprintarXiv:2503.24278,2025.
+26

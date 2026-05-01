@@ -1,0 +1,24 @@
+### #2 GenieEnvisioner (Liao et al., arXiv 2025)
+
+- 标题：Genie Envisioner: A Unified World Foundation Platform for Robotic Manipulation
+- 作者：Yue Liao, Pengfei Zhou, Siyuan Huang, Donglin Yang, Shengcong Chen, et al.（AgiBot Genie Team / LV-NUS Lab / BUAA）
+- 发表年份：2025
+- venue：arXiv preprint（ByteDance Seed / AgiBot 联合体）
+- arXiv ID：2508.05635
+- 中文摘要：本文提出 Genie Envisioner（GE），一个把策略学习、评测与仿真整合到单一视频生成框架内的世界基础平台。核心 GE-Base 是一个指令条件化、多视角的视频扩散模型，在 AgiBot-World-Beta 约 3000 小时、百万级真实双臂操作 episode 上训练，捕获时空与语义动力学。在此之上，GE-Act 用轻量 160M flow-matching 解码器把视觉潜表示映射为可执行动作轨迹，54 步动作 200 ms 内完成；GE-Sim 把生成动力学转为动作条件神经仿真器，支持闭环 rollout。配套 EWMBench 基准评测视觉保真度、物理一致性与指令-动作对齐。GE-Act 在 AgiBot G1、Dual Franka、Agilex Cobot Magic 上仅需 1 小时遥操数据即超越 GR00T N1、π0、UniVLA。
+- 核心方法：以 LTX-Video 2B / COSMOS 2 为底座的多视角自回归视频扩散 DiT，外接 sparse memory 与 T5-XXL 文本条件；GE-Act 并行动作分支用 flow-matching 把视觉 latent 解码为 54 步 30 Hz 动作；GE-Sim 通过 pose2image + motion delta 双层 hierarchical action conditioning 实现动作驱动视频生成 〔p.1: "GE-Base is a large-scale, instruction-conditioned video diffusion model"〕
+- 主要贡献：1) GE-Base 视频世界模型在 1M 真实双臂 episode 上预训练，提供时空语义先验；2) GE-Act 轻量 160M flow-matching 动作解码器实现 200 ms 内 54 步推理与跨平台少样本迁移；3) GE-Sim 动作条件神经仿真器支持千 episode/小时的闭环评测；4) EWMBench 基准从 scene/motion/semantics 三层评测视频世界模型 〔p.2: "GE-Base ... GE-Act ... GE-Sim ... EWMBench"〕
+- 与本调研主题的关系：GE 是本子节"仿真世界基础设施"代表，把世界模型 + 神经仿真器 + 评测基准整合为统一平台，对应 5.3 节中"用视频生成承接仿真"的范式
+- 优点：1) 视觉中心 latent 空间保留细粒度时空线索，相比 VLM 语言中心范式更适合细操；2) 1M episode 真机预训练带来强先验；3) 跨本体仅需 1 小时数据迁移即可超越 π0/GR00T N1；4) GE-Sim 千 episode/小时高速并行评测 〔p.3: "1 hour of teleoperated demonstrations, outperforming task-specific baselines"〕
+- 局限性：训练只用 AgiBot-World-Beta 单一来源、未引入互联网/仿真数据；仅限上半身桌面操作 + 平行夹爪，未覆盖灵巧手与全身运动；EWMBench 仍依赖代理指标与部分人工验证 〔p.23: "training relies exclusively on the AgiBot-World-Beta dataset—a large-scale yet single-platform real-world corpus"〕
+- 典型应用场景：双臂家庭与工业操作（Make sandwich、Pour tea、Clean table、Heat food in microwave、Pack laundry detergent from conveyor、Cloth/Box Folding），覆盖 AgiBot G1、Dual Franka、Agilex Cobot Magic、RoboTwin 仿真 〔p.10: "(1) Make a sandwich ... (2) Pour a cup of tea ... (5) Pack laundry detergent"〕
+- 数据集：AgiBot-World-Beta（约 1M episode、2967 小时、3 视角同步）；EWMBench（10 任务、每任务 100 实例从 AgiBot 测试集精选）；Agilex Cobot Magic 250 条遥操数据；Dual Franka 250 条；RoboTwin 4 任务 200 条联合微调 〔p.5: "approximately one million high-quality real-world dual-arm robotic manipulation episodes, totaling 2,967 hours"〕
+- 评价指标：Step-wise Success Rate（SR，子步独立评测）与 End-to-End Success Rate（E2E，仅终态判定）；EWMBench 含 Scene Consistency（DINOv2 patch 余弦相似度）、Spatial Alignment（symH 反距）、Temporal Alignment（NDTW 反距）、Dynamic Consistency（Wasserstein）、BLEU/CLIP/Logic 〔p.11: "Step-wise Success Rate (SR) and End-to-End Success Rate (E2E)"〕
+- benchmark 数值：
+  - AgiBot G1 grasp-cylinder / E2E / GE-Base 完整版 0.89 vs 训练自零 0.15 〔p.12, Tab.1〕
+  - AgiBot G1 grasp-cylinder / SR / GE-Base 完整版 0.76 vs 仅 VidAda 0 〔p.12, Tab.1〕
+  - EWMBench 总分 / Score / GE-Base 4.7010 vs Kling 3.8698 vs Hailuo 3.4125 〔p.21, Fig.17/Tab. EWMBench〕
+  - GE-Sim 动作条件 / SA Log. TA Scn. / LTX 0.94/0.97/0.98/0.90 〔p.22, Tab.2〕
+  - GE-Sim 动作条件 / BLEU/CLIP/DYN/Div./PSNR / COSMOS 0.31/90.2/0.85/0.010/20.7 〔p.22, Tab.2〕
+- 一句话评述：第一个把"视频世界模型 + 动作头 + 神经仿真器 + 评测"四件套统一在同一个 latent 空间的工业级平台，把"世界模型 = 仿真器"的口号真正落地到双臂操作
+- 参考文献条目（GB/T 7714）：LIAO Y, ZHOU P, HUANG S, et al. Genie Envisioner: A Unified World Foundation Platform for Robotic Manipulation[J]. arXiv preprint arXiv:2508.05635, 2025.

@@ -1,0 +1,23 @@
+### #1 R3M (Nair et al., CoRL 2022)
+- 标题：R3M: A Universal Visual Representation for Robot Manipulation
+- 作者：Suraj Nair, Aravind Rajeswaran, Vikash Kumar, Chelsea Finn, Abhinav Gupta
+- 发表年份：2022
+- venue：CoRL 2022
+- arXiv ID：2203.12601
+- 中文摘要：本文提出 R3M，一个面向机器人操控的通用视觉表征。作者使用 Ego4D 人类视频数据集，结合时间对比学习、视频-语言对齐与 L1 稀疏正则三项目标，预训练 ResNet 编码器作为下游策略学习的冻结感知模块。在 12 个仿真操控任务（Adroit、Franka-Kitchen、MetaWorld）上 R3M 比从头训练高 20% 以上、比 CLIP/MoCo 高 10% 以上；在真实 Franka Emika Panda 平台上仅用 20 条演示就能学会放生菜、折毛巾等家务任务，平均成功率约为 CLIP 的两倍。R3M 旨在成为机器人操控领域的标准预训练视觉模型。
+- 核心方法：用 Ego4D 人类视频上的时间对比学习 + 视频-语言对齐 + L1/L2 稀疏正则联合训练 ResNet 视觉编码器，作为下游 BC 策略的冻结感知模块 〔p.1: "time-contrastive learning, video-language alignment, and an L1 penalty"〕；关键创新点：1) 三组件统一目标捕捉时序动态、语义、紧凑性 〔p.2: "three components are important for training highly performant representations"〕；2) 用 Ego4D 多样人类视频而非 ImageNet 静态帧 〔p.4: "Ego4D contains videos of people engaging in a wide range of tasks"〕。
+- 主要贡献：发布可复用的预训练视觉模型 R3M（含 ResNet18/34/50），在 12 个仿真任务、9 个视角、3 个仿真环境与真实公寓上验证其优越性，并开源代码与权重 〔p.2: "Our core contribution is an artifact – the pre-trained vision model"〕。
+- 与本调研主题的关系：作为早期 VLA（VLA 概念前）「视觉表征」方向的代表，证明从人类视频预训练的视觉表征可作为机器人感知前端，但本身不直接产出动作，仍依赖下游 BC 策略，泛化范围受限于固定任务集合。
+- 优点：仅用人类视频数据，免去机器人交互成本；在低数据 BC 设置下显著优于 CLIP/MoCo/ImageNet；可即插即用替换感知前端 〔p.6: "R3M is overall able to learn these vision based manipulation tasks in an extremely low data regime with ≈62% success rate"〕。
+- 局限性：评估限于行为克隆类模仿学习，在 RL 设置下是否同样有效未验证；当前仅提供单帧状态表征，未涵盖奖励学习与任务指定 〔p.8: "Our current evaluation is limited to imitation learning, specifically behavior cloning"〕。
+- 典型应用场景：仿真机械臂操作（MetaWorld、Adroit、Franka-Kitchen）与真实公寓家务（关抽屉、放生菜入锅、推杯子、折毛巾、放口罩入抽屉）〔p.8: "putting lettuce in the pan, pushing the cup to the goal, and folding the towel"〕。
+- 数据集：预训练用 Ego4D（>3500 小时第一人称视频，70+ 地点）〔p.4: "more than 3500 hours of data"〕；下游评测用 MetaWorld、Franka-Kitchen、Adroit 与真实 Franka 平台 〔p.5: "MetaWorld [22], the Franka Kitchen environment [21], and Adroit"〕。
+- 评价指标：BC 在线成功率（每 1000 步评估一次，取 20000 步内最高），多 seed/视角/数据规模平均 〔p.5: "report the best success rate achieved"〕。
+- benchmark 数值：
+  - All Domains (12 tasks) / Success Rate / 62.4% 〔p.7, Tab.1〕
+  - Franka Kitchen / Success Rate / 53.1% 〔p.7, Tab.1〕
+  - MetaWorld / Success Rate / 69.2% 〔p.7, Tab.1〕
+  - Adroit / Success Rate / 65.0% 〔p.7, Tab.1〕
+  - 真实 Franka 5 任务平均（10 trials）/ Success Rate / 56% （vs CLIP 24%）〔p.8, Tab.3〕
+- 一句话评述：将「视觉表征预训练」范式从 vision/NLP 复刻到机器人操控的奠基工作，定义了 VLA 时代之前的视觉前端标杆。
+- 参考文献条目（GB/T 7714）：NAIR S, RAJESWARAN A, KUMAR V, et al. R3M: A universal visual representation for robot manipulation[C]//Proceedings of the 6th Conference on Robot Learning. 2022.

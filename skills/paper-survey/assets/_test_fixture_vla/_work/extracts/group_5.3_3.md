@@ -1,0 +1,24 @@
+### #3 RoboTwin2.0 (Chen et al., arXiv 2025)
+
+- 标题：RoboTwin 2.0: A Scalable Data Generator and Benchmark with Strong Domain Randomization for Robust Bimanual Robotic Manipulation
+- 作者：Tianxing Chen, Zanxin Chen, Baijun Chen, Zijian Cai, Yibin Liu, et al.（SJTU、HKU MMLab、Shanghai AI Lab、D-Robotics、SZU、THU、Lumina EAI）
+- 发表年份：2025
+- venue：arXiv preprint
+- arXiv ID：2506.18088
+- 中文摘要：本文提出 RoboTwin 2.0，一个面向鲁棒双臂操作的可扩展仿真数据生成框架。针对现有合成数据三大问题（无自动质控、域随机化粗糙、忽视跨本体差异），系统集成三件套：（1）多模态 LLM + 仿真在环反馈的自动专家代码生成 pipeline，能零样本合成超出 pick-and-place 的双臂行为；（2）覆盖 clutter / lighting / background / tabletop height / language instruction 五维的域随机化；（3）embodiment-aware 抓取适配。配套发布 RoboTwin-OD（731 物体 / 147 类别，含抓取点-轴等 affordance 标注）、50 个双臂任务、5 个本体（Aloha-AgileX、ARX-X5、Piper、Franka、UR5）、10 万+ 预采轨迹。代码生成 ASR 提升 10.9%；VLA 模型混合大规模合成数据 + 仅 10 条真实演示比 10-demo baseline 提升 367% 相对值；零样本仅靠合成数据也提升 228%。
+- 核心方法：MLLM 代码生成代理 + VLM 观察代理在仿真中执行 10 次 / 迭代检测左/右抓取失败、不可执行代码、错位等失败模式并反馈，最多 5 轮迭代修正；同时对 5 维环境因素做域随机化，对每个物体标注多候选抓取轴+角度扰动以适配不同 DoF 本体 〔p.3: "a closed-loop architecture with two agents: a code-generation agent and a vision–language model (VLM) observer"〕
+- 主要贡献：1) MLLM + 仿真在环反馈的自动专家数据生成框架，可生成复杂双臂行为；2) 五维域随机化策略提升 sim-to-real 与跨场景鲁棒；3) embodiment-aware 抓取候选适配低 DoF 平台；4) 发布 RoboTwin-OD（731 物体）、50 任务、5 本体、10 万+ 轨迹与基准 〔p.2: "(1) We develop an automated expert data generation framework ... (2) We propose a systematic domain randomization strategy ... (3) embodiment-aware adaptation"〕
+- 与本调研主题的关系：RoboTwin2 是本子节"数据生成基础设施"代表，对应 5.3 节中"仿真在环 + MLLM 自动合成"路线，与 GenieEnvisioner 的视频神经仿真互为补充（一个真值物理引擎驱动的可控数据工厂，一个生成式视觉世界模型）
+- 优点：1) MMFB 多模态反馈把 RoboTwin1.0 ASR 从 47.4% 提到 63.9%，2.0 进一步到 71.3%；2) 域随机化让 RDT/Pi0 在未见任务上达到 31.9%/29.3% 相对提升；3) 真实世界 4 任务 4 配置下 1k 合成 + 10 真实条均增益 24.4%；4) 低 DoF 本体（Piper、Aloha-AgileX、ARX-X5）成功率分别 +22.7%/+13.7%/+5.6% 〔p.2: "10.9% gain in code generation success rate ... a vision–language–action (VLA) model achieves a 367% relative improvement"〕
+- 局限性：N/A-源文本未覆盖（论文未设独立 Limitations 章节，结论只提"future work focusing on real-world deployment and multi-object task complexity"，并未明确列出现有方法缺陷）
+- 典型应用场景：双臂操作数据合成与基准，覆盖 50 个任务（StackBowls、PickDualBottles、MoveCanPot、HandoverBlock、ClickBell、AdjustBottle、BeatBlockHammer、BlocksRanking、HangingMug、LiftPot 等）与 5 个本体；真实世界 sim-to-real 验证 4 任务（StackBowls、HandoverBlock、PickBottle、ClickBell） 〔p.10: "we conduct experiments on four bimanual tasks: StackBowls, HandoverBlock, PickBottle, and ClickBell"〕
+- 数据集：RoboTwin-OD 731 物体 147 类别（534 in-house Rodin 重建 + 153 Objaverse + 44 SAPIEN PartNet-Mobility）+ 11k 纹理库；50 任务 × 5 本体 × 10 万+ 预采轨迹 〔p.6: "147 categories and 731 diverse objects ... 534 instances across 111 categories"〕
+- 评价指标：ASR（平均成功率）、Top5-ASR（每任务前 5 候选成功率）、CR-Iter（终止前平均迭代轮数）、Token（生成代码 token 数）；策略评测分 Easy（clean）与 Hard（域随机化）两条件，每任务 50 demo 训练、100 rollout 测 〔p.8: "ASR (Average Success Rate), Top5-ASR ... CR-Iter ... Token"〕
+- benchmark 数值：
+  - 代码生成 R2.0+MMFB / ASR / 71.3% vs R1.0 Vanilla 47.4% 〔p.8, Tab.1〕
+  - 跨本体平均 / Success rate / RoboTwin2.0 60.5% vs RoboTwin1.0 52.2% 〔p.8, Tab.2〕
+  - 8 个未见任务平均 / RoboTwin2.0 鲁棒性 / Pi0+Rand. 29.1% vs Pi0 22.5% 〔p.9, Tab.3〕
+  - Real-World 4 任务平均（Unseen+Cluttered）/ Success% / 10Real+1k RoboTwin2.0 42.0% vs 10 Clean Real 9.0% 〔p.10, Tab.4〕
+  - RoboTwin2.0 50 任务 Hard / Avg success% / DP3 5.0 vs RDT 13.7 vs Pi0 16.3 〔p.11, Tab.5〕
+- 一句话评述：把 MLLM + 仿真在环反馈 + 五维域随机化 + 跨本体 affordance 适配做成一个工业级数据工厂，是当前合成数据驱动 VLA 训练最成熟的开源基础设施
+- 参考文献条目（GB/T 7714）：CHEN T, CHEN Z, CHEN B, et al. RoboTwin 2.0: A Scalable Data Generator and Benchmark with Strong Domain Randomization for Robust Bimanual Robotic Manipulation[J]. arXiv preprint arXiv:2506.18088, 2025.

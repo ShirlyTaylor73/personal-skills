@@ -1,0 +1,23 @@
+### #4 ACT (Zhao et al., RSS 2023)
+- 标题：Learning Fine-Grained Bimanual Manipulation with Low-Cost Hardware
+- 作者：Tony Z. Zhao, Vikash Kumar, Sergey Levine, Chelsea Finn
+- 发表年份：2023
+- venue：RSS 2023
+- arXiv ID：2304.13705
+- 中文摘要：本文提出一套低成本双臂精细操作系统，包括硬件部分 ALOHA（< 20k USD 的开源双臂遥操作平台）与算法部分 ACT（Action Chunking with Transformers）。ACT 把策略训练为条件 VAE，编码器从动作序列与本体感知中预测「风格变量」z，解码器结合多视角 RGB、关节位置与 z 用 Transformer 预测未来 k 步动作分块，并在执行时对重叠分块做指数加权时序聚合。仅用 10 分钟（约 50 条）人类示教，ACT 在打开半透明调料杯、插电池等 6 个真实精细任务上达到 80–90% 成功率，在 Cube Transfer、Bimanual Insertion 仿真任务和 4 个真实任务上较 BeT、RT-1、BC-ConvMLP、VINN 等基线平均提升数十百分点。
+- 核心方法：将策略形式化为 CVAE，编码器（BERT 式 Transformer）从动作序列+关节生成 z；解码器（ResNet18+Transformer）以 4 路 RGB+关节+z 为条件预测 k 步动作分块（连续目标关节位置），执行时对重叠分块做时序集成 〔p.2: "Action Chunking with Transformers (ACT), which learns a generative model over action sequences"〕。关键创新点：1) 动作分块降低有效任务时长 k 倍并缓解非马尔可夫混淆 〔p.5: "This implies a k-fold reduction in the effective horizon of the task"〕；2) 时序集成提供平滑控制 〔p.5: "we propose a temporal ensemble to combine these predictions"〕；3) CVAE 建模人类示教多模态/噪声 〔p.5: "the CVAE objective to be essential in learning precise tasks from human demonstrations"〕。
+- 主要贡献：1) 低成本开源 ALOHA 双臂遥操作硬件；2) ACT 模仿学习算法；3) 在 6 真实 + 2 仿真精细操作任务上验证显著提升 〔p.2: "a low-cost system for learning fine manipulation, comprising a teleoperation system and a novel imitation learning algorithm"〕。
+- 与本调研主题的关系：早期 VLA「动作分块」方向的奠基算法。ACT 本身条件于多视角图像但未直接对接语言指令，是 RoboAgent 的 MT-ACT 直接前身；为后续 VLA（动作头 chunking）提供了关键技术组件。
+- 优点：训练高效（80M 参数，单卡 RTX2080 Ti，5 小时）；推理快（约 0.01 s）；解决复合误差与非马尔可夫问题 〔p.6: "around 80M parameters ... inference time is around 0.01 seconds"〕；在 50Hz 高频控制下显著优于 5Hz。
+- 局限性：仍存在硬件与算法层面无法处理的任务，如「扣纽扣式衬衫」；ACT 作为模仿学习仍受示教数据上限约束 〔p.10: "tasks that are beyond the capability of either the robots or the learning algorithm, such as buttoning up a dress shirt"〕。
+- 典型应用场景：双臂精细操控——拉开 ziploc 袋、装电池、撬开调料杯盖、穿魔术贴扎带、贴胶带、给假人脚穿鞋、解糖纸；以及仿真 Cube Transfer / Bimanual Insertion 〔p.6: "6 real-world tasks with ALOHA"〕。
+- 数据集：ALOHA 自采人类遥操作演示，每任务 50 条（Thread Velcro 100 条），约 10–20 分钟数据/任务；仿真任务各 50 条（脚本 + 人类两种）〔p.8: "We record 50 demonstrations for each task, except for Thread Velcro which has 100"〕。
+- 评价指标：每任务/子任务成功率（实物 25 次/seed，仿真 3 seed × 50 trial）〔p.8: "we run one seed and evaluate with 25 trials"〕。
+- benchmark 数值：
+  - Cube Transfer (sim, scripted) / Final Transfer 成功率 / 86% 〔p.8, Tab.I〕
+  - Slot Battery (real) / Final Insert 成功率 / 96% 〔p.8, Tab.I〕
+  - Slide Ziploc (real) / Final Open 成功率 / 88% 〔p.8, Tab.I〕
+  - Open Cup (real) / Open Lid 成功率 / 84% 〔p.8, Tab.II〕
+  - Put On Shoe (real) / Secure 成功率 / 92% 〔p.8, Tab.II〕
+- 一句话评述：用「Action Chunking + 时序集成 + CVAE」解决精细操作中复合误差，是 VLA 动作头设计的关键奠基工作。
+- 参考文献条目（GB/T 7714）：ZHAO T Z, KUMAR V, LEVINE S, et al. Learning fine-grained bimanual manipulation with low-cost hardware[C]//Proceedings of Robotics: Science and Systems. 2023.

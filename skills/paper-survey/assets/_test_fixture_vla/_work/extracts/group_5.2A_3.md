@@ -1,0 +1,24 @@
+### #3 OpenVLA (Kim et al., CoRL 2024)
+
+- 标题：OpenVLA: An Open-Source Vision-Language-Action Model
+- 作者：Moo Jin Kim, Karl Pertsch, Siddharth Karamcheti, et al.（Stanford / UC Berkeley / TRI / Google DeepMind / Physical Intelligence / MIT）
+- 发表年份：2024
+- venue：CoRL 2024
+- arXiv ID：2406.09246
+- 中文摘要：本文提出 OpenVLA，一个 7B 参数、完全开源的视觉-语言-动作（VLA）模型，使用 Llama 2 7B 作为语言骨干，并融合 DINOv2 与 SigLIP 双视觉编码器。在 Open-X Embodiment 数据集中精选 970k 真机演示后微调，将连续 7-D 动作离散为 256 bins 并复用 Llama tokenizer 末尾 256 个最少使用 token。在 BridgeData V2 与 Google robot 共 29 个任务上以 7× 更小的参数超越闭源 RT-2-X (55B) 16.5% 绝对成功率；并首次系统研究 VLA 的高效微调（LoRA 仅训练 1.4% 参数即可媲美全参微调），结合 4-bit 量化可在消费级 GPU 上以 7GB 显存运行。完整开源模型权重、训练代码与微调 notebook。
+- 核心方法：以 Prismatic-7B VLM（Llama 2 7B + 600M 双视觉编码器 SigLIP+DinoV2）为基座，沿用 RT-1/RT-2 的动作离散方案——每维分位数离散到 256 bins、覆写 Llama 词表末 256 个 token，next-token 预测仅在动作 token 上算交叉熵 〔p.5: "overwriting the 256 least used tokens in the Llama tokenizer's vocabulary... with our action tokens"〕；训练 27 个 epoch、64×A100×14 天 (21500 GPU·h)，并在 LoRA / 4-bit 量化推理上做了系统化设计 〔p.6: "trained on a cluster of 64 A100 GPUs for 14 days"〕
+- 主要贡献：1) 首个真正完整开源（权重+代码+训练 pipeline）的通才 VLA；2) 在 970k 真机轨迹上以 7B 参数超越 55B 的 RT-2-X 达 16.5%（绝对成功率）跨 29 任务；3) 首次系统研究 VLA 的参数高效微调（LoRA、量化），LoRA 仅训 1.4% 参数与全参微调持平；4) 释出 Prismatic 风格融合视觉编码器（DinoV2 提供细粒度空间信息）作为 VLA 优选骨干 〔p.2: "OpenVLA, a 7B-parameter open-source VLA"〕
+- 与本调研主题的关系：5.2A 大模型驱动 VLA 中"开源代表 / Stanford 衍生开源"一极：直接继承本组 #1 RT-2 的"动作 token 化 + co-fine-tune"范式，对标并超越其闭源后继 RT-2-X，对后续企业系 VLA（如 #4 GR00T-N1）形成开源对照基准；其 LoRA + 量化路线给本调研的"如何把大模型 VLA 落到普通硬件"提供一手依据。
+- 优点：1) 7B 远小于 RT-2-X 55B 仍取得跨 29 任务 +16.5% 成功率优势 〔p.2: "outperforming closed models such as RT-2-X (55B) by 16.5% in absolute task success rate"〕；2) 首次给出 VLA 的高效微调与量化 best practice，LoRA 仅训 1.4% 参数与全参持平 〔p.10: "matching full fine-tuning performance while training only 1.4% of the model parameters"〕；3) 完全开源（数据 mixture、代码、checkpoint）打破 VLA 黑箱壁垒 〔p.2: "we open-source all models, deployment and fine-tuning notebooks, and the OpenVLA codebase"〕；4) 双视觉编码器融合（SigLIP+DinoV2）改善空间推理 〔p.4: "the addition of DinoV2 features has been shown to be helpful for improved spatial reasoning"〕
+- 局限性：1) 仅支持单图观测，缺多视角/proprioception/历史观测 〔p.11: "currently only supports single-image observations"〕；2) 推理频率不足以驱动 ALOHA (50Hz) 等高频双臂任务 〔p.11: "improving the inference throughput of OpenVLA is critical to enable VLA control for high-frequency control setups such as ALOHA"〕；3) 整体可靠性仍 <90% 成功率，多个 VLA 设计问题（基座规模、co-train 数据等）未充分探索 〔p.11: "typically achieving < 90% success rate"〕
+- 典型应用场景：通用桌面/移动 pick-and-place、语义/视觉/物理/动作泛化、Franka-Tabletop 与 Franka-DROID 多任务多指令操作、消费级 GPU 上的微调与部署 〔p.7: "WidowX robot from the BridgeData V2 evaluations and the mobile manipulation robot"〕
+- 数据集：从 Open X-Embodiment 中精选 970k 真机演示（沿用 Octo 数据 mixture 权重，曾试加 DROID 但训练后 1/3 移除）；微调实验在 BridgeData V2、Franka-Tabletop、Franka-DROID 上 〔p.5: "970k robot demonstrations from the Open X-Embodiment dataset"〕
+- 评价指标：任务成功率（每法 170 rollouts on Bridge / 60 on Google robot / 99 + 30 on Franka），并报告 LoRA 训练参数量、显存、推理 Hz 〔p.7: "170 rollouts per approach"〕
+- benchmark 数值：
+  - BridgeData V2 / mean 成功率 / 70.6±3.2%（OpenVLA） 〔p.26, Tab.4〕
+  - BridgeData V2 / mean 成功率 / 50.6±3.5%（RT-2-X 55B） 〔p.26, Tab.4〕
+  - Google robot / mean 成功率 / 85.0±4.6%（OpenVLA） 〔p.28, Tab.6〕
+  - Google robot / mean 成功率 / 78.3±5.4%（RT-2-X 55B） 〔p.28, Tab.6〕
+  - Franka-Tabletop LoRA r=32 / 成功率 / 68.2±7.5%（vs 全参 69.7%） 〔p.10, Tab.1〕
+- 一句话评述：OpenVLA 用 7B 开源模型证明 VLA 不必闭源大就能赢 RT-2-X，是后 RT-2 时代社区基准与微调范式的事实标准。
+- 参考文献条目（GB/T 7714）：KIM M J, PERTSCH K, KARAMCHETI S, et al. OpenVLA: An open-source vision-language-action model[C]//Proceedings of the 8th Conference on Robot Learning (CoRL). 2024.
