@@ -96,7 +96,7 @@ md 组装 (4) ───────────── python assets/assemble_md.
 - 用户已知论文清单 / 主线综述（如有）
 - 工作目录 slug
 
-**关键确认**：必须复述工作目录绝对路径让用户确认，避免在代码仓库根（如 llm-router/）误落 50 篇 PDF 污染 git。
+**关键确认**：必须复述工作目录绝对路径让用户确认，避免在代码仓库根目录误落 50 篇 PDF 污染 git。
 
 ## 阶段 0b：预调研
 
@@ -107,7 +107,7 @@ md 组装 (4) ───────────── python assets/assemble_md.
 1. 创建工作目录 `{cwd}/<topic_slug>/`（含子目录 `_pre/` 与 `_work/`）
 2. 检索综述（默认源不含 semantic）：
    ```bash
-   uv run --directory d:/skills/paper-search-mcp paper-search search "{topic} survey OR review OR tutorial" -n 5 -s arxiv,crossref,openreview,doaj
+   paper-search search "{topic} survey OR review OR tutorial" -n 5 -s arxiv,crossref,openreview,doaj
    ```
 3. 用户给的主线综述：除非明确说"只用这一篇"，否则继续 paper-search 自动补搜
 4. 下载 1-3 篇到 `_pre/`，按 naming_convention 重命名
@@ -187,10 +187,11 @@ md 组装 (4) ───────────── python assets/assemble_md.
 
 **步骤**：
 
-1. 直接调用源 python 脚本（**不复制到工作目录** — 满足顶层只 *.pdf + 综述报告.md 约束）：
+1. 直接调用 skill 内置 python 脚本（**不复制到工作目录** — 满足顶层只 *.pdf + 综述报告.md 约束）：
    ```bash
-   python C:/Users/Administrator/.agents/skills/paper-survey/assets/assemble_md.py <workdir>
+   python <skill-path>/assets/assemble_md.py <workdir>
    ```
+   `<skill-path>` 表示本 skill 的安装目录（即包含本 SKILL.md 的目录）的绝对路径，由主 Claude 在运行时解析（不要硬编码到具体用户机器路径）。
 2. 输出：
    - 顶层 `<workdir>/<topic_slug>_综述报告.md`
    - stdout JSON: `{"status": "ok", "path": "...", "size_bytes": ..., "cn_chars": ..., "papers": ..., "refs": ...}`
@@ -209,7 +210,7 @@ md 组装 (4) ───────────── python assets/assemble_md.
 **步骤**：
 
 1. 派发 `validation_reviewer` subagent 跑反幻觉抽样（~49 处 verify_quotes_batch 并行 ≈ 2 秒）→ `<workdir>/_reviews/validation_review.md`
-2. 主 Claude 跑 `python C:/Users/Administrator/.agents/skills/paper-survey/assets/validation.py <workdir> --reviewer-report <workdir>/_reviews/validation_review.md`
+2. 主 Claude 跑 `python <skill-path>/assets/validation.py <workdir> --reviewer-report <workdir>/_reviews/validation_review.md`（`<skill-path>` 含义同阶段 4）
 3. 综合写 `<workdir>/_reviews/validation_report.md`，列每项 PASS/FAIL
 4. 任一 FAIL → γ 修复（按修复路径表分发）；3 轮仍 FAIL → 升级用户
 5. 全部 PASS → Edit `_work/survey_spec.md` 当前阶段为 `5-completed`，向用户口头汇报
@@ -246,15 +247,15 @@ md 组装 (4) ───────────── python assets/assemble_md.
 
 - 顶层只允许 `*.pdf`（论文）+ `<topic_slug>_综述报告.md`（最终交付）两类文件
 - 其他所有过程产物归 `_pre/` `_work/` `_reviews/` 三个下划线前缀子目录
-- `assemble_md.py` 与 `validation.py` 直接从源路径调用，**不复制到工作目录**
+- `assemble_md.py` 与 `validation.py` 直接以 `<skill-path>/assets/...` 形式从 skill 安装目录调用，**不复制到工作目录**
 
 ## 集成 paper-search
 
 paper-survey 通过 `paper-search` skill 完成所有检索/下载，详见 `references/paper_search_cheatsheet.md`。
 
-CLI 模式：
+CLI 模式（要求 `paper-search` 已在 PATH 中可用；安装方式见 paper-search skill 自身文档）：
 ```bash
-uv run --directory d:/skills/paper-search-mcp paper-search <command> [args]
+paper-search <command> [args]
 ```
 
 ## 资源索引

@@ -33,7 +33,7 @@
 补全 arxiv_id 流程：
 
 ```bash
-uv run --directory d:/skills/paper-search-mcp paper-search search "{simple_name} {first_author} {year}" -n 5 -s arxiv,crossref,openreview,doaj
+paper-search search "{simple_name} {first_author} {year}" -n 5 -s arxiv,crossref,openreview,doaj
 ```
 
 按 fuzzy 相似度处理：

@@ -1,12 +1,6 @@
 # paper-search 命令速查（paper-survey skill 内引用）
 
-paper-survey 通过 paper-search CLI 完成所有检索/下载/抽取。
-
-## CLI 路径
-
-```bash
-uv run --directory d:/skills/paper-search-mcp paper-search <command> [args]
-```
+paper-survey 通过 **paper-search skill** 完成所有检索/下载/抽取。本文档假设 paper-search skill 已安装并提供同名 CLI（`paper-search`）在 PATH 中可用，所有命令直接以 `paper-search` 调用，不依赖任何用户机器特定的绝对路径或 `uv run --directory` 形式。
 
 ## 默认源策略
 
@@ -21,7 +15,7 @@ paper-search 多源选择按风险/收益排序：
 ## 阶段 0b 预调研：搜综述
 
 ```bash
-uv run --directory d:/skills/paper-search-mcp paper-search search "{topic} survey OR review OR tutorial" -n 5 -s arxiv,crossref,openreview,doaj
+paper-search search "{topic} survey OR review OR tutorial" -n 5 -s arxiv,crossref,openreview,doaj
 ```
 
 返回 JSON 含候选综述。挑选 1-3 篇下载到 `pdfs/_pre/`。
@@ -29,7 +23,7 @@ uv run --directory d:/skills/paper-search-mcp paper-search search "{topic} surve
 ## 阶段 0c 写 spec：补全 arxiv ID
 
 ```bash
-uv run --directory d:/skills/paper-search-mcp paper-search search "{paper_simple_name} {first_author} {year}" -n 5 -s arxiv,crossref,openreview,doaj
+paper-search search "{paper_simple_name} {first_author} {year}" -n 5 -s arxiv,crossref,openreview,doaj
 ```
 
 按 fuzzy ≥ 80% 直采，否则 AskUserQuestion。
@@ -39,7 +33,7 @@ uv run --directory d:/skills/paper-search-mcp paper-search search "{paper_simple
 按 arxiv ID 直接下载（无需关键词检索）：
 
 ```bash
-uv run --directory d:/skills/paper-search-mcp paper-search download arxiv {arxiv_id} -o {workdir}/pdfs/
+paper-search download arxiv {arxiv_id} -o {workdir}/pdfs/
 ```
 
 ## 阶段 1 下载后校验（自动重试）
@@ -50,7 +44,7 @@ uv run --directory d:/skills/paper-search-mcp paper-search download arxiv {arxiv
 # 1. 文件大小 > 30 KB
 test $(stat -c %s "{pdf}") -gt 30000 || echo "FAIL: file too small"
 # 2. 第一页可抽取（非空，非加密图像型）
-python /c/Users/Administrator/.agents/skills/paper-survey/assets/pdf_extraction.py extract_page "{pdf}" 1 | head -c 100
+python <skill-path>/assets/pdf_extraction.py extract_page "{pdf}" 1 | head -c 100
 # 3. 标题/第一作者 fuzzy ≥ 80% 匹配 spec 清单
 # （由 paper_search_reviewer subagent 验证）
 ```
@@ -67,10 +61,10 @@ mv {workdir}/pdfs/{arxiv_id}.pdf {workdir}/pdfs/{YYYY}_{venue}_{method}.pdf
 
 ```bash
 # fallback：加 semantic
-uv run --directory d:/skills/paper-search-mcp paper-search search "{query}" -s arxiv,crossref,openreview,doaj,semantic
+paper-search search "{query}" -s arxiv,crossref,openreview,doaj,semantic
 
 # broad：全源（仅小众主题）
-uv run --directory d:/skills/paper-search-mcp paper-search search "{query}" -s all
+paper-search search "{query}" -s all
 ```
 
 仍失败 → 三个用户出口（见 SKILL.md 阶段 1 流程）：
@@ -82,7 +76,7 @@ uv run --directory d:/skills/paper-search-mcp paper-search search "{query}" -s a
 ## 元数据查询（不下载，不用 jq）
 
 ```bash
-uv run --directory d:/skills/paper-search-mcp paper-search search "{query}" -n 1 -s arxiv | python -c "import json,sys; p=json.load(sys.stdin)['papers'][0]; print(json.dumps({k:p[k] for k in ['paper_id','title','authors','published_date','pdf_url']}, ensure_ascii=False))"
+paper-search search "{query}" -n 1 -s arxiv | python -c "import json,sys; p=json.load(sys.stdin)['papers'][0]; print(json.dumps({k:p[k] for k in ['paper_id','title','authors','published_date','pdf_url']}, ensure_ascii=False))"
 ```
 
 用于阶段 0c 验证 arxiv_id 真实可下载（dry-run 等价物）。**不使用 jq**（Windows 默认未装）。

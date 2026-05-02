@@ -20,7 +20,7 @@
 
 ## 工作目录
 
-- **绝对路径**：d:/path/to/<topic_slug>/
+- **绝对路径**：<cwd-absolute-path>/<topic_slug>/
 - **最终交付**：`<topic_slug>/<topic_slug>_综述报告.md`（顶层 markdown 文件，含 LaTeX 公式可渲染）
 - **过程文件根目录**：`<topic_slug>/_work/`（spec.md / outline.md / extracts/）
 - **reviewer 报告根目录**：`<topic_slug>/_reviews/`
