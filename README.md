@@ -18,7 +18,30 @@
 
 仓库地址：`https://github.com/ShirlyTaylor73/personal-skills`
 
-### Claude Code
+### 用 Skills CLI 安装
+
+安装指定 skill：
+
+```bash
+npx skills add ShirlyTaylor73/personal-skills --skill paper-survey
+npx skills add ShirlyTaylor73/personal-skills --skill hatch-pet-realistic
+```
+
+查看可用 skill、使用完整 GitHub URL，或一次安装全部 skill：
+
+```bash
+npx skills add https://github.com/ShirlyTaylor73/personal-skills --list
+npx skills add https://github.com/ShirlyTaylor73/personal-skills --skill paper-survey
+npx skills add https://github.com/ShirlyTaylor73/personal-skills --all
+```
+
+`skills` CLI 会扫描仓库并发现 `plugins/personal-skills/skills/` 下的 skill。如果后续 CLI 行为变化，可使用直接 skill 路径作为回退：
+
+```bash
+npx skills add https://github.com/ShirlyTaylor73/personal-skills/tree/master/plugins/personal-skills/skills/paper-survey
+```
+
+### 在 Claude Code 安装
 
 在 Claude Code 会话里执行 slash 命令：
 
@@ -36,7 +59,7 @@
 /plugin disable personal-skills
 ```
 
-### Codex
+### 在 Codex 安装
 
 在终端执行 CLI 命令注册 marketplace：
 
@@ -59,7 +82,7 @@ codex plugin marketplace upgrade personal-skills
 codex plugin marketplace remove personal-skills
 ```
 
-### OpenCode / 本地 Skills
+### 在 OpenCode / 本地 Skills 安装
 
 如果工具直接读取 skill 根目录，把插件包内的 skills 目录复制或软链到目标位置：
 
