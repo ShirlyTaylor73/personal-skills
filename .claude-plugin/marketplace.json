@@ -6,19 +6,17 @@
     "name": "ShirlyTaylor73",
     "email": "shirlytaylor73@gmail.com"
   },
-  "metadata": {
-    "version": "1.0.0",
-    "description": "Personal agent skills collection."
-  },
   "plugins": [
     {
-      "name": "paper-survey",
-      "description": "中文学术综述报告自动生成 — 系统化完成多论文文献调研并产出 11 章 markdown 综述报告（含 LaTeX 公式可渲染）。集成 paper-search 自动检索下载、K 路并行 subagent 解析、reviewer 双层质量审查、跨 session 自动恢复。",
-      "source": "./",
-      "strict": false,
-      "skills": [
-        "./skills/paper-survey"
-      ]
+      "name": "personal-skills",
+      "description": "Personal agent skills collection.",
+      "version": "0.1.0",
+      "source": "./plugins/personal-skills",
+      "author": {
+        "name": "ShirlyTaylor73",
+        "email": "shirlytaylor73@gmail.com",
+        "url": "https://github.com/ShirlyTaylor73"
+      }
     }
   ]
 }

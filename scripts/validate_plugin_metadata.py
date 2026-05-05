@@ -9,10 +9,12 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from generate_claude_marketplace import build_marketplace
+from generate_claude_marketplace import PLUGIN_NAME, build_marketplace, collect_skill_names
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+PLUGIN_ROOT = REPO_ROOT / "plugins" / "personal-skills"
+SKILLS_ROOT = PLUGIN_ROOT / "skills"
 
 
 def load_json(path: Path) -> Any:
@@ -30,7 +32,7 @@ def canonical_json(value: Any) -> str:
 
 def repo_label(path: Path) -> str:
     try:
-        return str(path.relative_to(REPO_ROOT))
+        return str(path.relative_to(REPO_ROOT)).replace("\\", "/")
     except ValueError:
         return str(path)
 
@@ -51,118 +53,85 @@ def validate_plugin_manifest(path: Path) -> tuple[dict[str, Any], list[str]]:
     manifest = load_json(path)
     errors: list[str] = []
 
-    plugin_name = manifest.get("name")
-    if not isinstance(plugin_name, str) or not plugin_name:
-        errors.append(f"{repo_label(path)} is missing a string 'name'.")
-        return manifest, errors
+    if manifest.get("name") != PLUGIN_NAME:
+        errors.append(
+            f"{repo_label(path)} name is {manifest.get('name')!r}, expected {PLUGIN_NAME!r}."
+        )
 
-    plugin_root = path.parent.parent
     skills_rel = manifest.get("skills")
     if not isinstance(skills_rel, str) or not skills_rel:
         errors.append(f"{repo_label(path)} is missing a string 'skills' path.")
     else:
-        skills_path = (plugin_root / skills_rel).resolve()
-        if not skills_path.exists():
+        skills_path = (path.parent.parent / skills_rel).resolve()
+        if skills_path != SKILLS_ROOT.resolve():
+            errors.append(
+                f"{repo_label(path)} skills path resolves to {repo_label(skills_path)}, "
+                f"expected {repo_label(SKILLS_ROOT)}."
+            )
+        elif not skills_path.exists():
             errors.append(
                 f"{repo_label(path)} points to a missing skills path: {skills_rel}"
             )
+
+    interface = manifest.get("interface")
+    if not isinstance(interface, dict):
+        errors.append(f"{repo_label(path)} is missing an 'interface' object.")
 
     return manifest, errors
 
 
 def validate_codex_metadata(repo_root: Path) -> list[str]:
-    plugin_manifest_path = repo_root / ".codex-plugin" / "plugin.json"
+    plugin_manifest_path = PLUGIN_ROOT / ".codex-plugin" / "plugin.json"
     marketplace_path = repo_root / ".agents" / "plugins" / "marketplace.json"
-    plugin_manifest, errors = validate_plugin_manifest(plugin_manifest_path)
+    _, errors = validate_plugin_manifest(plugin_manifest_path)
     marketplace = load_json(marketplace_path)
-    plugin_name = plugin_manifest.get("name")
-    if not isinstance(plugin_name, str) or not plugin_name:
-        return errors
 
     plugins = marketplace.get("plugins")
-    if not isinstance(plugins, list) or not plugins:
-        errors.append(f"{repo_label(marketplace_path)} has no plugin entries.")
+    if not isinstance(plugins, list) or len(plugins) != 1:
+        errors.append(f"{repo_label(marketplace_path)} must contain exactly one plugin entry.")
         return errors
 
-    matching_entries: list[tuple[int, dict[str, Any], Path]] = []
-    for index, entry in enumerate(plugins):
-        if not isinstance(entry, dict):
-            continue
-
-        source = entry.get("source")
-        rel_path = source.get("path") if isinstance(source, dict) else None
-        plugin_root_candidate = resolve_plugin_root(repo_root, entry)
-        if plugin_root_candidate is None:
-            continue
-
-        candidate_manifest = plugin_root_candidate / ".codex-plugin" / "plugin.json"
-        if candidate_manifest.resolve() == plugin_manifest_path.resolve():
-            matching_entries.append((index, entry, plugin_root_candidate))
-        elif isinstance(rel_path, str) and rel_path.strip() in {".", "./"}:
-            errors.append(
-                f"{repo_label(marketplace_path)} plugin entry {index} resolves to "
-                f"{repo_label(plugin_root_candidate)}, but its manifest does not match "
-                f"{repo_label(plugin_manifest_path)}."
-            )
-
-    if not matching_entries:
-        errors.append(
-            f"{repo_label(marketplace_path)} does not contain a plugin entry that resolves "
-            f"to {repo_label(plugin_manifest_path)}."
-        )
+    entry = plugins[0]
+    if not isinstance(entry, dict):
+        errors.append(f"{repo_label(marketplace_path)} plugin entry 0 must be an object.")
         return errors
 
-    if len(matching_entries) > 1:
-        indexes = ", ".join(str(index) for index, _, _ in matching_entries)
+    if entry.get("name") != PLUGIN_NAME:
         errors.append(
-            f"{repo_label(marketplace_path)} contains multiple entries for the repo plugin "
-            f"at indexes: {indexes}."
-        )
-
-    index, entry, _ = matching_entries[0]
-    entry_name = entry.get("name")
-    if entry_name != plugin_name:
-        errors.append(
-            f"{repo_label(marketplace_path)} plugin entry {index} is named "
-            f"{entry_name!r}, expected {plugin_name!r}."
+            f"{repo_label(marketplace_path)} plugin entry is named "
+            f"{entry.get('name')!r}, expected {PLUGIN_NAME!r}."
         )
 
     source = entry.get("source")
     if not isinstance(source, dict) or source.get("source") != "local":
         errors.append(
-            f"{repo_label(marketplace_path)} plugin entry {index} must use "
-            f"'source.source': 'local'."
+            f"{repo_label(marketplace_path)} plugin entry must use 'source.source': 'local'."
         )
-    elif resolve_plugin_root(repo_root, entry) != repo_root.resolve():
+    elif resolve_plugin_root(repo_root, entry) != PLUGIN_ROOT.resolve():
         errors.append(
-            f"{repo_label(marketplace_path)} plugin entry {index} must resolve to the "
-            f"repository root so Codex loads {repo_label(plugin_manifest_path)}."
+            f"{repo_label(marketplace_path)} plugin entry must resolve to "
+            f"{repo_label(PLUGIN_ROOT)}."
         )
 
-    rel_path = source.get("path")
-    if not isinstance(rel_path, str) or rel_path.strip() not in {".", "./"}:
+    if not isinstance(source, dict) or source.get("path") != "./plugins/personal-skills":
         errors.append(
-            f"{repo_label(marketplace_path)} plugin entry {index} must use "
-            "'source.path' as '.' or './'."
+            f"{repo_label(marketplace_path)} plugin entry must use "
+            "'source.path': './plugins/personal-skills'."
         )
 
     policy = entry.get("policy")
     if not isinstance(policy, dict):
-        errors.append(
-            f"{repo_label(marketplace_path)} plugin entry {index} is missing 'policy'."
-        )
+        errors.append(f"{repo_label(marketplace_path)} plugin entry is missing 'policy'.")
     else:
         for field in ("installation", "authentication"):
             if field not in policy:
                 errors.append(
-                    f"{repo_label(marketplace_path)} plugin entry {index} is missing "
+                    f"{repo_label(marketplace_path)} plugin entry is missing "
                     f"'policy.{field}'."
                 )
 
     if "category" not in entry:
-        errors.append(
-            f"{repo_label(marketplace_path)} plugin entry {index} is missing 'category'."
-        )
+        errors.append(f"{repo_label(marketplace_path)} plugin entry is missing 'category'.")
 
     return errors
 
@@ -170,7 +139,7 @@ def validate_codex_metadata(repo_root: Path) -> list[str]:
 def validate_claude_metadata(repo_root: Path) -> list[str]:
     marketplace_path = repo_root / ".claude-plugin" / "marketplace.json"
     actual_marketplace = load_json(marketplace_path)
-    expected_marketplace = build_marketplace(repo_root / "skills")
+    expected_marketplace = build_marketplace(SKILLS_ROOT)
 
     if actual_marketplace == expected_marketplace:
         return []
@@ -185,7 +154,7 @@ def validate_claude_metadata(repo_root: Path) -> list[str]:
         )
     )
     return [
-        f"{repo_label(marketplace_path)} is out of date with current skills metadata.\n"
+        f"{repo_label(marketplace_path)} is out of date with current plugin metadata.\n"
         f"{diff}"
     ]
 
@@ -202,10 +171,11 @@ def main() -> int:
             print(file=sys.stderr)
         return 1
 
-    claude_marketplace = build_marketplace(REPO_ROOT / "skills")
+    skill_names = collect_skill_names(SKILLS_ROOT)
     print(
         "Plugin metadata validation passed: "
-        f"1 Codex plugin entry and {len(claude_marketplace['plugins'])} Claude entries."
+        f"{PLUGIN_NAME} with {len(skill_names)} skills "
+        f"({', '.join(skill_names)})."
     )
     return 0
 

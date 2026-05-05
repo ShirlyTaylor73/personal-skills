@@ -2,6 +2,11 @@ __pycache__/
 *.pyc
 .env
 .claude/
+.agents/skills/
 
 CLAUDE.md
 AGENTS.md
+
+# Skill 内的大体积模型缓存（首次使用时由 warmup_models.py / rembg 自动下载，不入仓）
+skills/*/models/*.onnx
+plugins/personal-skills/skills/*/models/*.onnx

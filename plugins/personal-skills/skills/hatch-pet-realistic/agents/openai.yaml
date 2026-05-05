@@ -1,0 +1,4 @@
+interface:
+  display_name: "Hatch Pet (Realistic)"
+  short_description: "Hatch a photo-realistic human companion as a Codex pet"
+  default_prompt: "Hatch a Codex-compatible animated pet in photo-realistic human portrait style. Use $imagegen for a tight full-body base and tight 192x208 row slots, record selected ig_*.png outputs with record_imagegen_result.py, then run finalize_pet_run.py so decoded strips are sliced to frames_raw, matted and scale-normalized with rembg into clean transparent frames, composed from frames (never frames_raw), validated, and packaged under ${CODEX_HOME:-$HOME/.codex}/pets/<pet-name>/."
