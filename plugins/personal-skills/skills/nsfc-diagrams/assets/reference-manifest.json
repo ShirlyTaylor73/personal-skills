@@ -1,0 +1,266 @@
+[
+  {
+    "asset": "references/mechanism/open-set-1.png",
+    "source": "开放集目标检测_侯竞夫.pptx",
+    "locator": "幻灯片1",
+    "source_sha256": "537cd92420a648c24b1e8913febfd554015085cd4df6d7c9d1ef2fe9f5215931",
+    "crop_normalized": [
+      0,
+      0.14,
+      1,
+      0.69
+    ],
+    "status": "完整参考",
+    "use": "对象、特征、分支与机制形状",
+    "asset_sha256": "72da3a8e72bb76b911d8951e5cdfe1b306eb76e5515fd108e9e37acce131644e"
+  },
+  {
+    "asset": "original-vectors/open-set-1.emf",
+    "source": "开放集目标检测_侯竞夫.pptx",
+    "locator": "幻灯片1唯一嵌入EMF",
+    "status": "原始EMF矢量，未承诺逐元素可编辑",
+    "asset_sha256": "0ecb1f83aa5023e788fd3bd66bf0c8699e6a3aa84cddd5769ca66470b7b4f66a",
+    "source_sha256": "537cd92420a648c24b1e8913febfd554015085cd4df6d7c9d1ef2fe9f5215931"
+  },
+  {
+    "asset": "references/mechanism/open-set-2.png",
+    "source": "开放集目标检测_侯竞夫.pptx",
+    "locator": "幻灯片2",
+    "source_sha256": "537cd92420a648c24b1e8913febfd554015085cd4df6d7c9d1ef2fe9f5215931",
+    "crop_normalized": [
+      0,
+      0.14,
+      1,
+      0.85
+    ],
+    "status": "完整参考",
+    "use": "对象、特征、分支与机制形状",
+    "asset_sha256": "3c61ce97e5c46ce01a0d5d4b28acf73bcaf6ac11e9cc1bccb9860787eca2fc44"
+  },
+  {
+    "asset": "original-vectors/open-set-2.emf",
+    "source": "开放集目标检测_侯竞夫.pptx",
+    "locator": "幻灯片2唯一嵌入EMF",
+    "status": "原始EMF矢量，未承诺逐元素可编辑",
+    "asset_sha256": "993c976cdcef2fe2f0053be1a4472f91a947868dc98c07d926525e94b7270e69",
+    "source_sha256": "537cd92420a648c24b1e8913febfd554015085cd4df6d7c9d1ef2fe9f5215931"
+  },
+  {
+    "asset": "references/mechanism/open-set-3.png",
+    "source": "开放集目标检测_侯竞夫.pptx",
+    "locator": "幻灯片3",
+    "source_sha256": "537cd92420a648c24b1e8913febfd554015085cd4df6d7c9d1ef2fe9f5215931",
+    "crop_normalized": [
+      0,
+      0.14,
+      1,
+      0.57
+    ],
+    "status": "完整参考",
+    "use": "对象、特征、分支与机制形状",
+    "asset_sha256": "fc9f506e1b70c84c20d2c0be3cba4d63c085a25ccf8aa74dd09fdd00ea669198"
+  },
+  {
+    "asset": "original-vectors/open-set-3.emf",
+    "source": "开放集目标检测_侯竞夫.pptx",
+    "locator": "幻灯片3唯一嵌入EMF",
+    "status": "原始EMF矢量，未承诺逐元素可编辑",
+    "asset_sha256": "44309da0412d0ca5c108371fd7648b7c0bd2a802efecf91a9b6af154bcfc87ab",
+    "source_sha256": "537cd92420a648c24b1e8913febfd554015085cd4df6d7c9d1ef2fe9f5215931"
+  },
+  {
+    "asset": "references/framework/template-fig-2.png",
+    "source": "模板.docx",
+    "locator": "PDF第18页；印刷页17；图2",
+    "source_sha256": "a5597f9fb7bbd589f03307b8d30e93b327eec2b32b57d7f440a093c9b1fc3236",
+    "crop_normalized": [
+      0.195,
+      0.48,
+      0.81,
+      0.884
+    ],
+    "status": "完整参考；保留源图水印",
+    "use": "图形表达和排版，不复用研究结论",
+    "asset_sha256": "3ba3b32ccac1a8336a9be71b5ab528dc87744609fc9d267e15ff18c791755e34"
+  },
+  {
+    "asset": "references/mechanism/template-fig-3.png",
+    "source": "模板.docx",
+    "locator": "PDF第20页；印刷页19；图3",
+    "source_sha256": "a5597f9fb7bbd589f03307b8d30e93b327eec2b32b57d7f440a093c9b1fc3236",
+    "crop_normalized": [
+      0.151,
+      0.091,
+      0.865,
+      0.501
+    ],
+    "status": "完整参考；保留源图水印",
+    "use": "图形表达和排版，不复用研究结论",
+    "asset_sha256": "93107f75cbdafba6e509d6ce4f0d80fb82ab42a1d5567915527c380ba7ec8408"
+  },
+  {
+    "asset": "references/mechanism/template-fig-4.png",
+    "source": "模板.docx",
+    "locator": "PDF第21页；印刷页20；图4",
+    "source_sha256": "a5597f9fb7bbd589f03307b8d30e93b327eec2b32b57d7f440a093c9b1fc3236",
+    "crop_normalized": [
+      0.15,
+      0.371,
+      0.865,
+      0.678
+    ],
+    "status": "完整参考；保留源图水印",
+    "use": "图形表达和排版，不复用研究结论",
+    "asset_sha256": "2f4e227946100387842a0f808d885f684bf91a19e9f81b0b1205f8d1eee4a54e"
+  },
+  {
+    "asset": "references/mechanism/template-fig-8.png",
+    "source": "模板.docx",
+    "locator": "PDF第33页；印刷页32；图8",
+    "source_sha256": "a5597f9fb7bbd589f03307b8d30e93b327eec2b32b57d7f440a093c9b1fc3236",
+    "crop_normalized": [
+      0.15,
+      0.199,
+      0.86,
+      0.374
+    ],
+    "status": "完整参考；保留源图水印",
+    "use": "图形表达和排版，不复用研究结论",
+    "asset_sha256": "a8a4145ab14d6afefb5870fb097b0b90eab92010f4e53c074582a3f0ee401db6"
+  },
+  {
+    "asset": "references/mechanism/template-fig-9.png",
+    "source": "模板.docx",
+    "locator": "PDF第34页；印刷页33；图9",
+    "source_sha256": "a5597f9fb7bbd589f03307b8d30e93b327eec2b32b57d7f440a093c9b1fc3236",
+    "crop_normalized": [
+      0.155,
+      0.188,
+      0.855,
+      0.407
+    ],
+    "status": "源文本异常，仅形状与连接参考",
+    "use": "图形表达和排版，不复用研究结论",
+    "asset_sha256": "86b57c8915ac2a8e6e11400d8b06ddd5b71e56552e463f779322874c0395985c"
+  },
+  {
+    "asset": "references/framework/topic-two.png",
+    "source": "课题二技术路线图.pptx",
+    "locator": "幻灯片1",
+    "source_sha256": "4c9f46de08ba8808ae6f7eaf96c385a875b965290e6f5ddf9409247b6d9dfaed",
+    "crop_normalized": [
+      0,
+      0.055,
+      1,
+      0.957
+    ],
+    "status": "完整参考",
+    "use": "编号标题、分级字体、关系箭头及内部机制丰富度",
+    "asset_sha256": "a5e400212311efcaeb74f9c72a396a2aef112901b0b5b103dece91685526dd76"
+  },
+  {
+    "asset": "details/encoder.png",
+    "source": "开放集目标检测_侯竞夫.pptx",
+    "locator": "幻灯片1：多模态编码器",
+    "source_sha256": "537cd92420a648c24b1e8913febfd554015085cd4df6d7c9d1ef2fe9f5215931",
+    "crop_normalized": [
+      0.102,
+      0.17,
+      0.279,
+      0.447
+    ],
+    "status": "完整参考",
+    "use": "局部参考裁图，不是可编辑组件",
+    "asset_sha256": "063fcd3866fc4722b8831f202de6ebba51b891a8d82a74488d3bc1d5e6d74003"
+  },
+  {
+    "asset": "details/clusters.png",
+    "source": "开放集目标检测_侯竞夫.pptx",
+    "locator": "幻灯片1：聚类双视图",
+    "source_sha256": "537cd92420a648c24b1e8913febfd554015085cd4df6d7c9d1ef2fe9f5215931",
+    "crop_normalized": [
+      0.296,
+      0.17,
+      0.47,
+      0.665
+    ],
+    "status": "完整参考",
+    "use": "局部参考裁图，不是可编辑组件",
+    "asset_sha256": "75ef051f81c818eb26f23e98fe00c1176025f115bcb57e3a1fe6885bc85d966f"
+  },
+  {
+    "asset": "details/contrast-branches.png",
+    "source": "开放集目标检测_侯竞夫.pptx",
+    "locator": "幻灯片2：两类对照分支",
+    "source_sha256": "537cd92420a648c24b1e8913febfd554015085cd4df6d7c9d1ef2fe9f5215931",
+    "crop_normalized": [
+      0.632,
+      0.146,
+      0.97,
+      0.842
+    ],
+    "status": "完整参考",
+    "use": "局部参考裁图，不是可编辑组件",
+    "asset_sha256": "724bfdff698397571004f0059ab15e05d56865741cf52d0d19400a85081922ed"
+  },
+  {
+    "asset": "details/distribution-alignment.png",
+    "source": "开放集目标检测_侯竞夫.pptx",
+    "locator": "幻灯片3：分布对齐",
+    "source_sha256": "537cd92420a648c24b1e8913febfd554015085cd4df6d7c9d1ef2fe9f5215931",
+    "crop_normalized": [
+      0.69,
+      0.243,
+      0.885,
+      0.501
+    ],
+    "status": "完整参考",
+    "use": "局部参考裁图，不是可编辑组件",
+    "asset_sha256": "60f13be0dc62f8601ce1f69252f77b5e3aee45cef65642ba1cd59b0af94f012a"
+  },
+  {
+    "asset": "details/title-style.png",
+    "source": "课题二技术路线图.pptx",
+    "locator": "幻灯片1：编号标题和摘要带",
+    "source_sha256": "4c9f46de08ba8808ae6f7eaf96c385a875b965290e6f5ddf9409247b6d9dfaed",
+    "crop_normalized": [
+      0.01,
+      0.059,
+      0.44,
+      0.18
+    ],
+    "status": "完整参考",
+    "use": "局部参考裁图，不是可编辑组件",
+    "asset_sha256": "d21daf0ecd0015eb277e335859922fd28e6b436598e038f3fcadba39cac00324"
+  },
+  {
+    "asset": "details/relation-arrows.png",
+    "source": "课题二技术路线图.pptx",
+    "locator": "幻灯片1：前向/返回关系",
+    "source_sha256": "4c9f46de08ba8808ae6f7eaf96c385a875b965290e6f5ddf9409247b6d9dfaed",
+    "crop_normalized": [
+      0.439,
+      0.178,
+      0.505,
+      0.42
+    ],
+    "status": "完整参考",
+    "use": "局部参考裁图，不是可编辑组件",
+    "asset_sha256": "2ce73681553bafaac5b41b11417bd3a6c70bf2f22ceb5a97e8744e1a5b9f604e"
+  },
+  {
+    "asset": "details/internal-hierarchy.png",
+    "source": "课题二技术路线图.pptx",
+    "locator": "幻灯片1：内部强调、辅助文字和具体对象",
+    "source_sha256": "4c9f46de08ba8808ae6f7eaf96c385a875b965290e6f5ddf9409247b6d9dfaed",
+    "crop_normalized": [
+      0.015,
+      0.708,
+      0.43,
+      0.94
+    ],
+    "status": "完整参考",
+    "use": "局部参考裁图，不是可编辑组件",
+    "asset_sha256": "2c9fc619d2d8729d5eba57ea572cba99221640d4ad2aa13ecdc97cc47ff02474"
+  }
+]

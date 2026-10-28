@@ -1,0 +1,4 @@
+interface:
+  display_name: "基金示意图绘制"
+  short_description: "按机制图或总体框架图模板规划素材、绘图并交付可编辑副本"
+  default_prompt: "请使用 $nsfc-diagrams，根据研究正文和参考先选择机制图或总体框架图模板，规划独立素材，绘制基金申请书SVG与单页PPT。"
