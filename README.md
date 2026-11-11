@@ -14,6 +14,8 @@
 | [`nsfc-diagrams`](./plugins/personal-skills/skills/nsfc-diagrams/SKILL.md) | 国自然等科研基金绘图：机制图、技术路线图与总体框架图，含参考素材及 SVG / PPT / Word 交付指引 |
 | [`paper-survey`](./plugins/personal-skills/skills/paper-survey/SKILL.md) | 中文学术综述报告自动生成：检索 / 下载 / 并行解析 / 双层审查 / 跨 session 恢复 |
 | [`hatch-pet-realistic`](./plugins/personal-skills/skills/hatch-pet-realistic/SKILL.md) | Codex 桌面宠物（写实人像）：基于 `$imagegen` + rembg 抠图，产出 1536x1872 / 8x9 的透明 atlas |
+| [`analyze-failure-trajectory`](./plugins/personal-skills/skills/analyze-failure-trajectory/SKILL.md) | 机器人与具身 agent 失败轨迹分析：交叉核对 session、模型输入图片、视频与执行日志，定位偏离及原因 |
+| [`experiment-results-reporting`](./plugins/personal-skills/skills/experiment-results-reporting/SKILL.md) | RPent / LIBERO 实验结果汇总：验证集与结果表、失败归因、token / 时间 / 费用统计及全集外推 |
 
 ## 安装
 
@@ -27,6 +29,8 @@
 npx skills add ShirlyTaylor73/personal-skills --skill paper-survey
 npx skills add ShirlyTaylor73/personal-skills --skill hatch-pet-realistic
 npx skills add ShirlyTaylor73/personal-skills --skill nsfc-diagrams
+npx skills add ShirlyTaylor73/personal-skills --skill analyze-failure-trajectory
+npx skills add ShirlyTaylor73/personal-skills --skill experiment-results-reporting
 ```
 
 查看可用 skill、使用完整 GitHub URL，或一次安装全部 skill：

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Experiment Results Reporting"
+  short_description: "Generate reproducible evaluation tables and metric summaries"
+  default_prompt: "Organize an evaluation into a validation-set table and an experiment-results table with explicit metric rules."
