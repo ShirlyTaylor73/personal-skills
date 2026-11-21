@@ -13,6 +13,8 @@
 | `budgets` | 只检查清单中列出的常驻文档；超限、清单中文件缺失、上限非法均失败 | 决定为常驻文档设预算时 |
 | `archive` | 已登记的归档文件哈希不变、不被删除；新归档文件须有 `Archived:` 行并显式登记 | 使用 Agent Notes 的 `archived/` 时 |
 
+`links` 的范围是有意收窄的：只检查写在单行内的行内链接、图片和引用式定义所指向的本地文件或目录。跨行的链接文字或目标、HTML `<a>` / `<img>`、自动链接、外部 URL 可达性和锚点是否存在都不检查。目标仓库需要这些时，复用仓库已有或成熟的链接检查工具，不要把这个脚本扩展成完整的 Markdown 解析器；两者并存时在 `docs/AGENTS.md` 中写明各自负责的范围。
+
 按需可以追加的检查：锚点存在性、生成文档是否最新（重新生成后比对）、`CLAUDE.md` 是否仍指向 `AGENTS.md`、文档中的代码块能否编译。只有目标仓库确实存在相应规则时才加。
 
 ## 使用附带的实现
@@ -44,9 +46,44 @@
 
 负例只在隔离的临时副本中构造，不在目标仓库的工作树里改动再还原：工作树里可能有用户未提交的改动和刚搭建、尚未提交的文件，`git checkout` / `git clean` 会把它们一起抹掉。
 
-1. 在目标仓库上运行全部已启用检查，必须通过。记录 `git status --short` 的输出。
-2. 把当前工作树（含未提交文件，不含 `.git`）复制到新建的临时目录，例如 `rsync -a --exclude .git ./ "$tmp/"`。
-3. 在副本中为每项启用的检查构造一个最小错误样例，例如：添加一个指向不存在文件的链接；把一个 implemented note 的 Status 改成 `Status: proposed`；把预算上限改到低于当前用量；修改一个已登记的归档文件。
-4. 用 `--root "$tmp"` 对副本运行检查，确认命令失败、退出码非零、每个样例都被报出且指向正确的文件和原因。
-5. 删除临时目录，再次运行 `git status --short`，确认与第 1 步一致，目标仓库检查仍通过。
-6. 在交付报告中列出实际运行过的命令和结果。
+1. 在目标仓库上运行全部已启用检查，必须通过。
+2. 用 bash 运行下面的脚本。它在仓库外新建临时目录，复制当前工作树（含未提交文件，不含 `.git`），任一步（包括复制管道两端）失败即停止，结束时删除副本，并确认目标仓库的 `git status` 未变。
+   - 错误样例只写进副本中的**普通文件**：坏链接写进副本里新建、事先确认不存在的 `.md` 文件；其他样例（把 implemented note 的 Status 改成 `Status: proposed`、把预算上限改到低于当前用量、修改已登记的归档文件）先用 `[ -f "$f" ] && [ ! -L "$f" ]` 确认目标不是符号链接再改。tar 会原样保留符号链接，改写一个指向副本外的链接会改到真实文件。
+   - 脚本区分两类失败：检查以退出码 1 报出预期的样例诊断才算负例成立；退出码 0 表示漏报，2 表示配置 / 参数错误或脚本无法打开，其他值表示复制或执行失败，都不能当作负例通过。
+
+   ```bash
+   #!/usr/bin/env bash
+   set -euo pipefail
+   repo=$(git rev-parse --show-toplevel)
+   tmp=$(mktemp -d "${TMPDIR:-/tmp}/harness-neg.XXXXXX")
+   [ -n "$tmp" ] && [ -d "$tmp" ] || { echo "临时目录创建失败" >&2; exit 1; }
+   trap 'rm -rf -- "$tmp"' EXIT
+   case "$tmp/" in "$repo"/*) echo "临时目录位于仓库内：$tmp" >&2; exit 1 ;; esac
+   before=$(git -C "$repo" status --short)
+   (cd "$repo" && tar --exclude=./.git --exclude=./node_modules -cf - .) | (cd "$tmp" && tar -xf -)
+
+   # 错误样例：只写副本中的普通文件
+   sample="$tmp/harness-negative-sample.md"
+   [ ! -e "$sample" ] && [ ! -L "$sample" ] || { echo "样例文件已存在：$sample" >&2; exit 1; }
+   printf '[坏链接](does-not-exist.md)\n' > "$sample"
+   expected="harness-negative-sample.md:1: 链接目标不存在"
+
+   set +e
+   out=$(python3 "$repo/scripts/check_agent_docs.py" --root "$tmp" 2>&1)
+   code=$?
+   set -e
+   printf '%s\n' "$out"
+   case "$code" in
+     1) ;;
+     0) echo "漏报：检查通过了，负例未被发现" >&2; exit 1 ;;
+     2) echo "配置、参数错误或脚本无法打开（退出码 2），不是样例诊断" >&2; exit 1 ;;
+     *) echo "检查执行失败（退出码 $code），不是样例诊断" >&2; exit 1 ;;
+   esac
+   case "$out" in *"$expected"*) ;; *) echo "未出现预期诊断：$expected" >&2; exit 1 ;; esac
+   [ "$before" = "$(git -C "$repo" status --short)" ] || { echo "目标仓库状态被改变" >&2; exit 1; }
+   echo "负例验证通过"
+   ```
+
+3. 逐条核对输出：每个样例都被报出，且指向正确的文件和原因。
+4. 再次对目标仓库运行检查，仍应通过。
+5. 在交付报告中列出实际运行过的命令和结果。

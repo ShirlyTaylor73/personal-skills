@@ -315,17 +315,34 @@ def count_units(text: str) -> int:
 
 
 def init_budgets(paths: list[str], headroom: float = 0.1) -> int:
-    """为指定常驻文档按当前用量加余量生成预算清单；清单已存在时拒绝覆盖。"""
+    """为指定常驻文档按当前用量加余量生成预算清单。
+
+    先校验全部参数再写文件：清单已存在、路径不在仓库内或不是文件时整体拒绝，
+    不产生部分结果。清单只记录相对仓库根、以 `/` 分隔的路径，保证可移植。
+    """
     manifest_path = ROOT / BUDGET_MANIFEST
     if manifest_path.exists():
         print(f"{BUDGET_MANIFEST} 已存在；调整上限请直接编辑该文件", file=sys.stderr)
         return 2
-    missing = [p for p in paths if not (ROOT / p).is_file()]
-    if not paths or missing:
-        print(f"需要列出存在的文档路径；不存在：{missing}", file=sys.stderr)
+    rels: list[str] = []
+    bad: list[str] = []
+    for arg in paths:
+        candidate = Path(arg)
+        resolved = (candidate if candidate.is_absolute() else ROOT / candidate).resolve()
+        try:
+            rel = resolved.relative_to(ROOT).as_posix()
+        except ValueError:
+            bad.append(f"{arg}（不在仓库 {ROOT} 内）")
+            continue
+        if not resolved.is_file():
+            bad.append(f"{arg}（不是已存在的文件）")
+        elif rel not in rels:
+            rels.append(rel)
+    if bad:
+        print("预算清单未写入，以下路径无效：\n  " + "\n  ".join(bad), file=sys.stderr)
         return 2
     manifest = {}
-    for rel in paths:
+    for rel in rels:
         used = count_units((ROOT / rel).read_text(encoding="utf-8"))
         manifest[rel] = max(used + 1, int(used * (1 + headroom) + 0.999))
         print(f"{used:>6} -> {manifest[rel]:<6} {rel}")
@@ -419,6 +436,12 @@ def main() -> int:
     if args.root:
         ROOT = args.root.resolve()
     if args.init:
+        if args.checks != ["budgets"] or args.list or args.write:
+            print("--init 只能单独用于 `budgets --init DOC...`，不能与其他检查、--list 或 --write 同用", file=sys.stderr)
+            return 2
+        if "budgets" not in CHECKS:
+            print("budgets 检查未启用（不在 CHECKS 中），不生成预算清单", file=sys.stderr)
+            return 2
         return init_budgets(args.init)
     selected = args.checks or list(CHECKS)
     unknown = [c for c in selected if c not in CHECKS]
