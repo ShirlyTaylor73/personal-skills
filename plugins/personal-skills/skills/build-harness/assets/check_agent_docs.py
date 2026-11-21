@@ -8,6 +8,7 @@
 用法：
     python3 scripts/check_agent_docs.py              # 运行全部检查
     python3 scripts/check_agent_docs.py links notes  # 只运行指定检查
+    python3 scripts/check_agent_docs.py budgets --init AGENTS.md docs/AGENTS.md  # 首次建预算清单
     python3 scripts/check_agent_docs.py budgets --list
     python3 scripts/check_agent_docs.py archive --write  # 归档新 note 后登记哈希
 
@@ -59,7 +60,10 @@ ARCHIVE_LOCK = "scripts/archived-notes.lock.json"  # {"路径": "sha256", ...}
 
 NOTE_NAME = re.compile(r"^\d{4}-\d{2}-\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*\.md$")
 LIFECYCLES = set(REQUIRED_SECTIONS)
-NOTE_META_FILES = {"AGENTS.md", "README.md", "CLAUDE.md", ".gitkeep"}
+# notes 根目录与生命周期 / 分类目录中允许的规则文件；其他文件按 note 检查或报错。
+NOTE_META_FILES = {"AGENTS.md", "README.md", "CLAUDE.md"}
+# 目录占位文件，任何位置都忽略（与规则文件白名单无关）。
+PLACEHOLDER_FILES = {".gitkeep", ".keep"}
 CJK = re.compile(r"[㐀-䶿一-鿿豈-﫿　-〿＀-￯]")
 
 
@@ -101,20 +105,26 @@ def markdown_files() -> list[Path]:
     return files
 
 
+FENCE = re.compile(r"^ {0,3}(`{3,}|~{3,})(.*)$")
+
+
 def prose_lines(text: str) -> list[tuple[int, str]]:
-    """返回不在围栏代码块内的 (行号, 行)。"""
-    out, fence = [], None
+    """返回不在围栏代码块内的 (行号, 行)。
+
+    按 CommonMark：围栏由 3 个以上同种字符开启，只被同种字符、长度不小于开启
+    长度且其后只有空白的行关闭，因此四反引号块内的三反引号示例不会提前关闭。
+    """
+    out: list[tuple[int, str]] = []
+    fence: str | None = None
     for no, line in enumerate(text.splitlines(), 1):
-        stripped = line.lstrip()
-        marker = stripped[:3]
-        if marker in ("```", "~~~"):
-            if fence is None:
-                fence = marker
-            elif fence == marker:
-                fence = None
-            continue
+        m = FENCE.match(line)
         if fence is None:
+            if m and not (m.group(1)[0] == "`" and "`" in m.group(2)):
+                fence = m.group(1)
+                continue
             out.append((no, line))
+        elif m and m.group(1)[0] == fence[0] and len(m.group(1)) >= len(fence) and not m.group(2).strip():
+            fence = None
     return out
 
 
@@ -135,22 +145,86 @@ def load_json(rel: str, report: Report) -> dict | None:
 
 # --------------------------------------------------------------- links ----
 
-INLINE_CODE = re.compile(r"`[^`]*`")
-LINK = re.compile(r"!?\[[^\]]*\]\(\s*<?([^)\s>]+)>?(?:\s+\"[^\"]*\")?\s*\)")
-REF_DEF = re.compile(r"^\s{0,3}\[[^\]]+\]:\s*<?(\S+?)>?(?:\s+.*)?$")
+INLINE_CODE = re.compile(r"(?<!`)(`+)(?!`).*?(?<!`)\1(?!`)")
+REF_DEF = re.compile(r"^ {0,3}\[[^\]]+\]:[ \t]*(.*)$")
 EXTERNAL = re.compile(r"^(?:[a-zA-Z][a-zA-Z0-9+.-]*:|//|#)")
+
+
+def read_destination(text: str, i: int) -> str | None:
+    """从 text[i] 开始读取链接目标：`<...>` 形式可含空格，否则允许成对括号。"""
+    while i < len(text) and text[i] in " \t":
+        i += 1
+    if i < len(text) and text[i] == "<":
+        end = text.find(">", i + 1)
+        return text[i + 1:end] if end != -1 else None
+    depth, start = 0, i
+    while i < len(text):
+        ch = text[i]
+        if ch == "\\" and i + 1 < len(text):
+            i += 2
+            continue
+        if ch.isspace():
+            break
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            if depth == 0:
+                break
+            depth -= 1
+        i += 1
+    return text[start:i] or None
+
+
+ESCAPE = re.compile(r"\\([!-/:-@\[-`{-~])")
+
+
+def label_end(line: str, i: int) -> int:
+    """line[i] 是未转义的 `[`，返回与之匹配的 `]` 下标；没有则返回 -1。"""
+    depth = 0
+    while i < len(line):
+        ch = line[i]
+        if ch == "\\":
+            i += 2
+            continue
+        if ch == "[":
+            depth += 1
+        elif ch == "]":
+            depth -= 1
+            if depth == 0:
+                return i
+        i += 1
+    return -1
+
+
+def line_targets(line: str) -> list[str]:
+    """提取一行中的行内链接 / 图片目标和引用式定义目标，并按 Markdown 转义规则还原。
+
+    只识别以未转义 `[` 开头、匹配到 `]` 且紧跟 `(` 的真正链接标签，
+    因此普通文本中的 `](`、`\\[字面量](x)` 不会被当作链接。
+    """
+    ref = REF_DEF.match(line)
+    if ref:
+        dests = [read_destination(ref.group(1), 0)]
+    else:
+        dests, i = [], 0
+        while i < len(line):
+            ch = line[i]
+            if ch == "\\":
+                i += 2
+                continue
+            if ch == "[":
+                end = label_end(line, i)
+                if end != -1 and line[end + 1:end + 2] == "(":
+                    dests.append(read_destination(line, end + 2))
+            i += 1
+    return [ESCAPE.sub(r"\1", d) for d in dests if d]
 
 
 def check_links(report: Report) -> None:
     """相对链接的目标文件或目录必须存在（不检查锚点和外部 URL）。"""
     for path in markdown_files():
         for no, line in prose_lines(path.read_text(encoding="utf-8")):
-            line = INLINE_CODE.sub("", line)
-            targets = LINK.findall(line)
-            ref = REF_DEF.match(line)
-            if ref:
-                targets.append(ref.group(1))
-            for target in targets:
+            for target in line_targets(INLINE_CODE.sub("", line)):
                 if EXTERNAL.match(target):
                     continue
                 file_part = target.split("#", 1)[0].split("?", 1)[0]
@@ -169,17 +243,17 @@ def check_links(report: Report) -> None:
 def check_notes(report: Report) -> None:
     """notes 的路径、分类、状态行与目录一致性、生命周期必需节。"""
     notes_root = ROOT / NOTES_DIR
-    if not notes_root.exists():
-        report.add(NOTES_DIR, None, "notes 目录不存在（若不使用 notes，请从检查列表中移除 notes）")
+    if not any((notes_root / name).is_file() for name in NOTE_META_FILES):
+        report.add(NOTES_DIR, None, f"缺少 notes 规则文件（{sorted(NOTE_META_FILES)} 之一）；不使用这套 notes 布局时请从 CHECKS 移除 notes")
         return
     allowed_top = LIFECYCLES | {"archived"}
     for path in sorted(notes_root.rglob("*")):
-        if path.is_dir():
+        if path.is_dir() or path.name in PLACEHOLDER_FILES:
             continue
         parts = path.relative_to(notes_root).parts
         if len(parts) == 1:
-            if parts[0] not in NOTE_META_FILES and not parts[0].endswith(".md"):
-                report.add(path, None, "notes 根目录只放规则文件")
+            if parts[0] not in NOTE_META_FILES:
+                report.add(path, None, f"notes 根目录只放规则文件 {sorted(NOTE_META_FILES)}；note 应放在 {{lifecycle}}/ 下")
             continue
         lifecycle = parts[0]
         if lifecycle not in allowed_top:
@@ -240,6 +314,27 @@ def count_units(text: str) -> int:
     return cjk + len(rest.split())
 
 
+def init_budgets(paths: list[str], headroom: float = 0.1) -> int:
+    """为指定常驻文档按当前用量加余量生成预算清单；清单已存在时拒绝覆盖。"""
+    manifest_path = ROOT / BUDGET_MANIFEST
+    if manifest_path.exists():
+        print(f"{BUDGET_MANIFEST} 已存在；调整上限请直接编辑该文件", file=sys.stderr)
+        return 2
+    missing = [p for p in paths if not (ROOT / p).is_file()]
+    if not paths or missing:
+        print(f"需要列出存在的文档路径；不存在：{missing}", file=sys.stderr)
+        return 2
+    manifest = {}
+    for rel in paths:
+        used = count_units((ROOT / rel).read_text(encoding="utf-8"))
+        manifest[rel] = max(used + 1, int(used * (1 + headroom) + 0.999))
+        print(f"{used:>6} -> {manifest[rel]:<6} {rel}")
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(f"已写入 {BUDGET_MANIFEST}")
+    return 0
+
+
 def check_budgets(report: Report, list_only: bool) -> None:
     """只约束清单中列出的常驻文档；清单内文件缺失同样失败。"""
     manifest = load_json(BUDGET_MANIFEST, report)
@@ -272,7 +367,7 @@ def archived_files() -> dict[str, str]:
         return {}
     out = {}
     for path in sorted(root.rglob("*")):
-        if path.is_file() and path.name not in NOTE_META_FILES:
+        if path.is_file() and path.name not in NOTE_META_FILES | PLACEHOLDER_FILES:
             out[rel_path(path)] = hashlib.sha256(path.read_bytes()).hexdigest()
     return out
 
@@ -308,6 +403,7 @@ def check_archive(report: Report, write: bool) -> None:
 
 # ---------------------------------------------------------------- main ----
 
+# 目标仓库不使用的机制从这里移除（例如沿用已有 ADR 时去掉 notes / archive，不设预算时去掉 budgets）。
 CHECKS = ("links", "notes", "budgets", "archive")
 
 
@@ -318,9 +414,12 @@ def main() -> int:
     parser.add_argument("--root", type=Path, help="仓库根目录（默认为脚本上一级目录）")
     parser.add_argument("--list", action="store_true", help="budgets：列出各文档用量")
     parser.add_argument("--write", action="store_true", help="archive：登记新的归档文件哈希")
+    parser.add_argument("--init", nargs="+", metavar="DOC", help="budgets：按当前用量 +10%% 为这些文档生成预算清单")
     args = parser.parse_args()
     if args.root:
         ROOT = args.root.resolve()
+    if args.init:
+        return init_budgets(args.init)
     selected = args.checks or list(CHECKS)
     unknown = [c for c in selected if c not in CHECKS]
     if unknown:
