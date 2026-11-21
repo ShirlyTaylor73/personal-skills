@@ -16,6 +16,7 @@
 | [`hatch-pet-realistic`](./plugins/personal-skills/skills/hatch-pet-realistic/SKILL.md) | Codex 桌面宠物（写实人像）：基于 `$imagegen` + rembg 抠图，产出 1536x1872 / 8x9 的透明 atlas |
 | [`analyze-failure-trajectory`](./plugins/personal-skills/skills/analyze-failure-trajectory/SKILL.md) | 机器人与具身 agent 失败轨迹分析：交叉核对 session、模型输入图片、视频与执行日志，定位偏离及原因 |
 | [`experiment-results-reporting`](./plugins/personal-skills/skills/experiment-results-reporting/SKILL.md) | RPent / LIBERO 实验结果汇总：验证集与结果表、失败归因、token / 时间 / 费用统计及全集外推 |
+| [`agent-repo-harness`](./plugins/personal-skills/skills/agent-repo-harness/SKILL.md) | 参照 DeepSeek Harness 把仓库整理成便于 agent 工作的形态：分层 AGENTS.md、docs、Agent Notes，可选文档检查脚本与 CI |
 
 ## 安装
 
@@ -31,6 +32,7 @@ npx skills add ShirlyTaylor73/personal-skills --skill hatch-pet-realistic
 npx skills add ShirlyTaylor73/personal-skills --skill nsfc-diagrams
 npx skills add ShirlyTaylor73/personal-skills --skill analyze-failure-trajectory
 npx skills add ShirlyTaylor73/personal-skills --skill experiment-results-reporting
+npx skills add ShirlyTaylor73/personal-skills --skill agent-repo-harness
 ```
 
 查看可用 skill、使用完整 GitHub URL，或一次安装全部 skill：
