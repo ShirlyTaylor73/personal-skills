@@ -1,8 +1,8 @@
-# agent-repo-harness 规格
+# build-harness 规格
 
 ## 目标
 
-新建 skill `agent-repo-harness`，指导 agent 参照 DeepSeek Harness（DSH）的做法，把一个目标仓库整理成便于 agent 工作的仓库：分层 `AGENTS.md`、描述当前事实的 `docs/`、记录决策依据的 Agent Notes，以及可选的可执行检查脚本和 CI 接入。
+新建 skill `build-harness`，指导 agent 参照 DeepSeek Harness（DSH）的做法，把一个目标仓库整理成便于 agent 工作的仓库：分层 `AGENTS.md`、描述当前事实的 `docs/`、记录决策依据的 Agent Notes，以及可选的可执行检查脚本和 CI 接入。
 
 ## 已澄清的需求
 
@@ -25,4 +25,4 @@
 
 ## 放置
 
-遵循本仓库规定：`plugins/personal-skills/skills/agent-repo-harness/`，并在 `README.md` 的 skill 表格与安装命令中登记。
+遵循本仓库规定：`plugins/personal-skills/skills/build-harness/`，并在 `README.md` 的 skill 表格与安装命令中登记。

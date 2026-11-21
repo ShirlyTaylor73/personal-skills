@@ -1,9 +1,9 @@
 ---
-name: agent-repo-harness
+name: build-harness
 description: 参照 DeepSeek Harness 的做法，把一个现有代码仓库整理成便于 agent 持续工作的仓库：建立分层 AGENTS.md、描述当前事实的 docs、记录决策依据的 Agent Notes，并按用户选择配置可执行的文档检查脚本和 CI。适用于为仓库搭建或重组 agent 工作脚手架；不用于撰写单篇文档、日常功能开发或只修改一条 AGENTS.md 规则。
 ---
 
-# Agent Repo Harness
+# Build Harness
 
 把目标仓库整理成：任何 agent 进入后，**只读仓库自身的文件**就知道开工前读什么、事实写在哪、决策记在哪、改完要同步什么、运行哪条命令验证。这个 skill 负责一次性的调查、设计与搭建；后续日常维护依靠搭好的仓库规则和检查命令完成，不依赖再次调用本 skill。因此，凡是后续 agent 需要遵守的维护规则，都必须落进目标仓库。
 
