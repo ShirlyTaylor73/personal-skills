@@ -1,4 +1,4 @@
 interface:
   display_name: "Experiment Results Reporting"
-  short_description: "Generate reproducible evaluation tables and metric summaries"
-  default_prompt: "Organize an evaluation into a validation-set table and an experiment-results table with explicit metric rules."
+  short_description: "Generate reproducible Excel reports with fixed table formatting"
+  default_prompt: "Use $experiment-results-reporting to create a Chinese Excel evaluation report with fixed three-line-table formatting, task-level results, and a baseline comparison when requested."
