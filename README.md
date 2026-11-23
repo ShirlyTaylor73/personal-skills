@@ -17,7 +17,7 @@
 | [`analyze-failure-trajectory`](./plugins/personal-skills/skills/analyze-failure-trajectory/SKILL.md) | 机器人与具身 agent 失败轨迹分析：交叉核对 session、模型输入图片、视频与执行日志，定位偏离及原因 |
 | [`experiment-results-reporting`](./plugins/personal-skills/skills/experiment-results-reporting/SKILL.md) | RPent / LIBERO 实验结果汇总：验证集与结果表、失败归因、token / 时间 / 费用统计及全集外推 |
 | [`build-harness`](./plugins/personal-skills/skills/build-harness/SKILL.md) | 把仓库整理成便于 agent 持续工作的形态：分层 AGENTS.md、docs、决策记录，可选文档检查脚本与 CI |
-| [`plan`](./plugins/personal-skills/skills/plan/SKILL.md) | 纯规划：只读勘察、逐层拷问澄清设计决策，把 ≤200 行的单周期 / MVP 实施计划直接落盘到 `.agents/plans/` |
+| [`plan`](./plugins/personal-skills/skills/plan/SKILL.md) | 多文件、多步骤复杂任务执行前的纯规划：查询本地与网络资料、与用户逐层澄清并确认，把 ≤200 行的单周期 / MVP 计划直接落盘到 `.agents/plans/` |
 
 ## 安装
 
