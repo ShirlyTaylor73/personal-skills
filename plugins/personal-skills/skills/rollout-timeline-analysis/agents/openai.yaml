@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rollout Timeline Analysis"
+  short_description: "Aligned 4-track Perfetto & HTML timelines and critical-path analysis for rollout logs"
+  default_prompt: "Use $rollout-timeline-analysis to parse existing baseline or harness rollout logs, export aligned 4-track Perfetto traces and pipeline_timeline.html, start the local background preview server, and return the clickable URL along with critical-path timings."

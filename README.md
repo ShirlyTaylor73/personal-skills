@@ -19,6 +19,7 @@
 | [`build-harness`](./plugins/personal-skills/skills/build-harness/SKILL.md) | 把仓库整理成便于 agent 持续工作的形态：分层 AGENTS.md、docs、决策记录，可选文档检查脚本与 CI |
 | [`plan`](./plugins/personal-skills/skills/plan/SKILL.md) | 多文件、多步骤复杂任务执行前的纯规划：查询本地与网络资料、与用户逐层澄清并确认，把 ≤200 行的单周期 / MVP 计划直接落盘到 `.agents/plans/` |
 | [`research-brainstorm`](./plugins/personal-skills/skills/research-brainstorm/SKILL.md) | 研究 / 项目想法的多轮 brainstorming：检索查新、独立批判性判断、每轮末尾用带开放选项的多选题追问；推荐搭配 `smart-search-cli`（泛搜）与 `paper-search`（精读）两个技能，需另行安装 |
+| [`rollout-timeline-analysis`](./plugins/personal-skills/skills/rollout-timeline-analysis/SKILL.md) | 离线解析 baseline 与 REAgent harness 机器人 rollout 日志：统一跨进程事件表、对齐四泳道 Perfetto / 交互式 HTML 时序图（本地预览）及关键路径与失败归因报告 |
 
 ## 安装
 
@@ -37,6 +38,7 @@ npx skills add ShirlyTaylor73/personal-skills --skill experiment-results-reporti
 npx skills add ShirlyTaylor73/personal-skills --skill build-harness
 npx skills add ShirlyTaylor73/personal-skills --skill plan
 npx skills add ShirlyTaylor73/personal-skills --skill research-brainstorm
+npx skills add ShirlyTaylor73/personal-skills --skill rollout-timeline-analysis
 ```
 
 查看可用 skill、使用完整 GitHub URL，或一次安装全部 skill：
